@@ -91,7 +91,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
-            <Image src="/minima-logo.png" alt="Minima Hotel" width={180} height={60} className="h-14 w-auto object-contain" />
+            <Image src="/minima-logo.png" alt="Minima Hotel" width={100} height={32} className="h-7 w-auto object-contain" />
           </div>
           <CardTitle className="text-2xl font-bold">{isLogin ? "Welcome Back" : "Create Account"}</CardTitle>
           <CardDescription>{isLogin ? "Sign in to access Hotel Analytics" : "Sign up to get started"}</CardDescription>
