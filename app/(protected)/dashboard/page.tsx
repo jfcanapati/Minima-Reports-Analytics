@@ -4,7 +4,6 @@ import { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { KPICard } from "@/components/reports/KPICard";
 import { ChartCard } from "@/components/reports/ChartCard";
-import { DataTable } from "@/components/reports/DataTable";
 import { DateRangeFilter } from "@/components/reports/DateRangeFilter";
 import { exportKPIsToPDF, exportKPIsToExcel } from "@/lib/exportUtils";
 import { BedDouble, TrendingUp, BarChart3, Wallet } from "lucide-react";
@@ -12,7 +11,6 @@ import { formatCurrency, formatCurrencyShort } from "@/lib/localization";
 import { useToast } from "@/hooks/useToast";
 import { 
   useRoomTypes, 
-  useBookings, 
   useBookingStats,
   useDailyOccupancy, 
   useMonthlyRevenue, 
@@ -33,7 +31,6 @@ export default function DashboardPage() {
   const [endDate, setEndDate] = useState<Date | undefined>(new Date());
 
   const { data: roomTypes = [], isLoading: roomTypesLoading } = useRoomTypes(endDate);
-  const { data: bookings = [], isLoading: bookingsLoading } = useBookings(startDate, endDate);
   const { data: bookingStats } = useBookingStats(startDate, endDate);
   const { data: dailyOccupancy = [], isLoading: occupancyLoading } = useDailyOccupancy(startDate, endDate);
   const { data: monthlyRevenue = [], isLoading: revenueLoading } = useMonthlyRevenue(startDate, endDate);
@@ -42,7 +39,7 @@ export default function DashboardPage() {
   const alerts = useAlerts(comparison);
   const { toast } = useToast();
 
-  const isLoading = roomTypesLoading || bookingsLoading || occupancyLoading || revenueLoading || summaryLoading || comparisonLoading;
+  const isLoading = roomTypesLoading || occupancyLoading || revenueLoading || summaryLoading || comparisonLoading;
   const kpiData = calculateKPIs(roomTypes, monthlyRevenue);
 
   // Transform monthly revenue for chart - rename fields for display
@@ -53,28 +50,6 @@ export default function DashboardPage() {
     Services: item.spa,
     Other: item.other,
   }));
-
-  const bookingColumns = [
-    { key: "id", label: "Booking ID" },
-    { key: "guest", label: "Guest" },
-    { key: "room", label: "Room Type" },
-    { key: "checkIn", label: "Check In" },
-    { key: "checkOut", label: "Check Out" },
-    { 
-      key: "status", 
-      label: "Status",
-      render: (value: string) => (
-        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-          value === "paid" ? "bg-green-100 text-green-800" :
-          value === "pending" ? "bg-yellow-100 text-yellow-800" :
-          value === "checked-in" ? "bg-blue-100 text-blue-800" :
-          "bg-gray-100 text-gray-800"
-        }`}>
-          {value}
-        </span>
-      )
-    },
-  ];
 
   const kpis = [
     { label: "Occupancy Rate", value: `${comparison?.current.occupancyRate || kpiData.occupancyRate}%`, change: comparison?.changes.occupancyRate },
@@ -211,7 +186,7 @@ export default function DashboardPage() {
         </ChartCard>
       </div>
 
-      {/* Room Types & Recent Bookings */}
+      {/* Room Type Status & Revenue Summary */}
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <ChartCard title="Room Type Status" description="Current occupancy by room type">
           <div className="space-y-4">
@@ -232,10 +207,6 @@ export default function DashboardPage() {
                         style={{ width: `${percentage}%` }} 
                       />
                     </div>
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>Capacity: {room.capacity} guests/room</span>
-                      <span>{percentage.toFixed(0)}% occupied</span>
-                    </div>
                   </div>
                 );
               })
@@ -254,55 +225,42 @@ export default function DashboardPage() {
         </ChartCard>
 
         <div className="lg:col-span-2">
-          <ChartCard title="Recent Bookings" description="Latest booking activity">
-            {bookings.length > 0 ? (
-              <DataTable columns={bookingColumns} data={bookings} />
-            ) : (
-              <div className="flex items-center justify-center py-8">
-                <p className="text-gray-500">No recent bookings</p>
+          <ChartCard title="Revenue Summary" description="Breakdown of revenue sources vs previous period">
+            <div className="grid gap-6 md:grid-cols-3">
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-sm text-gray-500">Room Revenue</p>
+                <p className="text-2xl font-bold text-black">{formatCurrencyShort(comparison?.current.roomRevenue || revenueSummary?.totalRoomRevenue || 0)}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-xs text-gray-500">From {comparison?.current.bookings || bookingStats?.total || 0} bookings</p>
+                  {comparison?.changes.roomRevenue !== undefined && (
+                    <span className={`text-xs font-medium ${comparison.changes.roomRevenue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {comparison.changes.roomRevenue >= 0 ? '↑' : '↓'} {Math.abs(comparison.changes.roomRevenue)}%
+                    </span>
+                  )}
+                </div>
               </div>
-            )}
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-sm text-gray-500">POS Revenue</p>
+                <p className="text-2xl font-bold text-black">{formatCurrencyShort(comparison?.current.posRevenue || revenueSummary?.totalPOSRevenue || 0)}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-xs text-gray-500">From {revenueSummary?.totalTransactions || 0} transactions</p>
+                  {comparison?.changes.posRevenue !== undefined && (
+                    <span className={`text-xs font-medium ${comparison.changes.posRevenue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {comparison.changes.posRevenue >= 0 ? '↑' : '↓'} {Math.abs(comparison.changes.posRevenue)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-sm text-gray-500">Previous Period</p>
+                <p className="text-2xl font-bold text-black">{formatCurrencyShort(comparison?.previous.revenue || 0)}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {comparison?.previous.bookings || 0} bookings • {formatCurrency(comparison?.previous.adr || 0)} ADR
+                </p>
+              </div>
+            </div>
           </ChartCard>
         </div>
-      </div>
-
-      {/* Revenue Summary */}
-      <div className="mt-6">
-        <ChartCard title="Revenue Summary" description="Breakdown of revenue sources vs previous period">
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="rounded-lg bg-gray-50 p-4">
-              <p className="text-sm text-gray-500">Room Revenue</p>
-              <p className="text-2xl font-bold text-black">{formatCurrencyShort(comparison?.current.roomRevenue || revenueSummary?.totalRoomRevenue || 0)}</p>
-              <div className="flex items-center justify-between mt-1">
-                <p className="text-xs text-gray-500">From {comparison?.current.bookings || bookingStats?.total || 0} bookings</p>
-                {comparison?.changes.roomRevenue !== undefined && (
-                  <span className={`text-xs font-medium ${comparison.changes.roomRevenue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {comparison.changes.roomRevenue >= 0 ? '↑' : '↓'} {Math.abs(comparison.changes.roomRevenue)}%
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="rounded-lg bg-gray-50 p-4">
-              <p className="text-sm text-gray-500">POS Revenue</p>
-              <p className="text-2xl font-bold text-black">{formatCurrencyShort(comparison?.current.posRevenue || revenueSummary?.totalPOSRevenue || 0)}</p>
-              <div className="flex items-center justify-between mt-1">
-                <p className="text-xs text-gray-500">From {revenueSummary?.totalTransactions || 0} transactions</p>
-                {comparison?.changes.posRevenue !== undefined && (
-                  <span className={`text-xs font-medium ${comparison.changes.posRevenue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {comparison.changes.posRevenue >= 0 ? '↑' : '↓'} {Math.abs(comparison.changes.posRevenue)}%
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="rounded-lg bg-gray-50 p-4">
-              <p className="text-sm text-gray-500">Previous Period</p>
-              <p className="text-2xl font-bold text-black">{formatCurrencyShort(comparison?.previous.revenue || 0)}</p>
-              <p className="text-xs text-gray-500 mt-1">
-                {comparison?.previous.bookings || 0} bookings • {formatCurrency(comparison?.previous.adr || 0)} ADR
-              </p>
-            </div>
-          </div>
-        </ChartCard>
       </div>
     </PageContainer>
   );

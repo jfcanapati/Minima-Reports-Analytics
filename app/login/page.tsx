@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useToast } from "@/hooks/useToast";
-import { Building2, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import Image from "next/image";
 import { z } from "zod";
 
 const emailSchema = z.string().email("Please enter a valid email address");
@@ -89,8 +90,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-whitesmoke p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-md bg-black text-white">
-            <Building2 className="h-7 w-7" />
+          <div className="mx-auto mb-4">
+            <Image src="/minima-logo.png" alt="Minima Hotel" width={180} height={60} className="h-14 w-auto object-contain" />
           </div>
           <CardTitle className="text-2xl font-bold">{isLogin ? "Welcome Back" : "Create Account"}</CardTitle>
           <CardDescription>{isLogin ? "Sign in to access Hotel Analytics" : "Sign up to get started"}</CardDescription>

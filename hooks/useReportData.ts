@@ -787,3 +787,83 @@ export function calculateRevenueByCatagory(monthlyRevenue: MonthlyRevenue[]) {
   
   return categories.filter(c => c.value > 0);
 }
+
+
+// Combined report data for email reports
+export interface CombinedReportData {
+  totalRevenue: number;
+  roomRevenue: number;
+  posRevenue: number;
+  occupancyRate: number;
+  totalBookings: number;
+  onlineBookings: number;
+  walkInBookings: number;
+}
+
+export function useCombinedReportData(startDate?: Date, endDate?: Date) {
+  const start = startDate ? formatDateStr(startDate) : null;
+  const end = endDate ? formatDateStr(endDate) : null;
+  
+  return useQuery({
+    queryKey: ["combinedReportData", start, end],
+    queryFn: async (): Promise<CombinedReportData> => {
+      const [roomsSnapshot, bookingsSnapshot, posSnapshot] = await Promise.all([
+        get(ref(database, "rooms")),
+        get(ref(database, "bookings")),
+        get(ref(database, "pos_transactions"))
+      ]);
+
+      const totalRooms = roomsSnapshot.exists() ? Object.keys(roomsSnapshot.val()).length : 1;
+      let allBookings: any[] = bookingsSnapshot.exists() ? Object.values(bookingsSnapshot.val()) : [];
+      let allPOS: any[] = posSnapshot.exists() ? Object.values(posSnapshot.val()) : [];
+
+      // Filter by date range
+      if (start && end) {
+        allBookings = allBookings.filter((b: any) => {
+          const createdAt = (b.createdAt || b.checkIn).split("T")[0];
+          return createdAt >= start && createdAt <= end;
+        });
+        allPOS = allPOS.filter((t: any) => {
+          const createdAt = t.created_at.split("T")[0];
+          return createdAt >= start && createdAt <= end;
+        });
+      }
+
+      const paidBookings = allBookings.filter((b: any) => b.status === "paid" || b.status === "completed");
+      const completedPOS = allPOS.filter((t: any) => t.status === "completed");
+
+      const roomRevenue = paidBookings.reduce((sum: number, b: any) => sum + (b.totalPrice || 0), 0);
+      const posRevenue = completedPOS.reduce((sum: number, t: any) => sum + (t.total || 0), 0);
+
+      // Calculate occupancy
+      const startD = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const endD = endDate || new Date();
+      const daysInPeriod = Math.ceil((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24)) || 1;
+      
+      let occupiedNights = 0;
+      paidBookings.forEach((b: any) => {
+        const checkIn = new Date(b.checkIn);
+        const checkOut = new Date(b.checkOut);
+        const overlapStart = checkIn > startD ? checkIn : startD;
+        const overlapEnd = checkOut < endD ? checkOut : endD;
+        if (overlapStart <= overlapEnd) {
+          const nights = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24));
+          occupiedNights += Math.max(0, nights);
+        }
+      });
+      
+      const totalNights = totalRooms * daysInPeriod;
+      const occupancyRate = totalNights > 0 ? Math.round((occupiedNights / totalNights) * 100) : 0;
+
+      return {
+        totalRevenue: roomRevenue + posRevenue,
+        roomRevenue,
+        posRevenue,
+        occupancyRate,
+        totalBookings: paidBookings.length,
+        onlineBookings: paidBookings.filter((b: any) => !b.isWalkIn).length,
+        walkInBookings: paidBookings.filter((b: any) => b.isWalkIn).length,
+      };
+    },
+  });
+}

@@ -13,12 +13,13 @@ interface DateRangeFilterProps {
   endDate: Date | undefined;
   onStartDateChange: (date: Date | undefined) => void;
   onEndDateChange: (date: Date | undefined) => void;
-  onExportPDF: () => void;
-  onExportExcel: () => void;
+  onExportPDF?: () => void;
+  onExportExcel?: () => void;
   reportTitle?: string;
+  showExport?: boolean;
 }
 
-export function DateRangeFilter({ startDate, endDate, onStartDateChange, onEndDateChange, onExportPDF, onExportExcel }: DateRangeFilterProps) {
+export function DateRangeFilter({ startDate, endDate, onStartDateChange, onEndDateChange, onExportPDF, onExportExcel, showExport = true }: DateRangeFilterProps) {
   const presetRanges = [{ label: "Last 7 days", days: 7 }, { label: "Last 30 days", days: 30 }, { label: "Last 90 days", days: 90 }, { label: "This Year", days: 365 }];
 
   const applyPreset = (days: number) => {
@@ -59,15 +60,17 @@ export function DateRangeFilter({ startDate, endDate, onStartDateChange, onEndDa
         {presetRanges.map((preset) => <Button key={preset.label} variant="ghost" size="sm" onClick={() => applyPreset(preset.days)} className="text-xs">{preset.label}</Button>)}
       </div>
 
-      <div className="ml-auto">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild><Button className="gap-2"><Download className="h-4 w-4" />Export</Button></DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onExportPDF} className="gap-2 cursor-pointer"><FileText className="h-4 w-4 text-red-600" />Export as PDF</DropdownMenuItem>
-            <DropdownMenuItem onClick={onExportExcel} className="gap-2 cursor-pointer"><FileSpreadsheet className="h-4 w-4 text-green-600" />Export as Excel</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {showExport && onExportPDF && onExportExcel && (
+        <div className="ml-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button className="gap-2"><Download className="h-4 w-4" />Export</Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onExportPDF} className="gap-2 cursor-pointer"><FileText className="h-4 w-4 text-red-600" />Export as PDF</DropdownMenuItem>
+              <DropdownMenuItem onClick={onExportExcel} className="gap-2 cursor-pointer"><FileSpreadsheet className="h-4 w-4 text-green-600" />Export as Excel</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Search, User, LogOut } from "lucide-react";
+import { Search, User, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
@@ -31,11 +31,6 @@ export function Header({ title, subtitle }: HeaderProps) {
         <div className="relative hidden md:block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
           <Input placeholder="Search reports..." className="w-64 pl-10 bg-gray-100 border-gray-300 focus:border-black" />
-        </div>
-
-        <div role="button" tabIndex={0} className="relative flex h-10 w-10 items-center justify-center rounded-sm hover:bg-gray-100 transition-colors cursor-pointer">
-          <Bell className="h-5 w-5 text-gray-500" />
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-black" />
         </div>
 
         <DropdownMenu>
