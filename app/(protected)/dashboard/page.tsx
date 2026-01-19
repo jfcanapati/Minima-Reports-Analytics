@@ -23,8 +23,69 @@ import { AlertCard } from "@/components/reports/AlertCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, BarChart, Bar, Legend 
+  ResponsiveContainer, BarChart, Bar, Legend, TooltipProps 
 } from "recharts";
+
+// Custom tooltip component for Revenue chart
+const DashboardRevenueTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+  if (!active || !payload || payload.length === 0) return null;
+
+  const data = payload[0]?.payload;
+  if (!data) return null;
+
+  const rooms = data.Rooms || 0;
+  const services = (data.Foods || 0) + (data.Services || 0) + (data.Other || 0);
+  const total = rooms + services;
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-4 min-w-[200px]">
+      <p className="font-semibold text-black mb-3 pb-2 border-b border-gray-100">{label}</p>
+      
+      {/* Room Revenue */}
+      <div className="flex items-center justify-between py-1.5">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-[#111111]" />
+          <span className="text-sm text-gray-600">Room Revenue</span>
+        </div>
+        <span className="text-sm font-medium text-black">{formatCurrency(rooms)}</span>
+      </div>
+      
+      {/* Services Revenue */}
+      <div className="flex items-center justify-between py-1.5">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-[#4B4B4B]" />
+          <span className="text-sm text-gray-600">Services (POS)</span>
+        </div>
+        <span className="text-sm font-medium text-black">{formatCurrency(services)}</span>
+      </div>
+
+      {/* Breakdown */}
+      <div className="ml-5 text-xs text-gray-500 space-y-1 py-1">
+        <div className="flex justify-between">
+          <span>• Foods</span>
+          <span>{formatCurrency(data.Foods || 0)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>• Services</span>
+          <span>{formatCurrency(data.Services || 0)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>• Other</span>
+          <span>{formatCurrency(data.Other || 0)}</span>
+        </div>
+      </div>
+      
+      {/* Total */}
+      <div className="flex items-center justify-between pt-2 mt-2 border-t border-gray-200">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-sm bg-black" />
+          <span className="text-sm font-semibold text-black">Total</span>
+        </div>
+        <span className="text-sm font-bold text-black">{formatCurrency(total)}</span>
+      </div>
+    </div>
+  );
+};
 
 export default function DashboardPage() {
   const [startDate, setStartDate] = useState<Date | undefined>(new Date(new Date().setDate(new Date().getDate() - 30)));
@@ -171,10 +232,7 @@ export default function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#D1D1D1" />
                 <XAxis dataKey="month" stroke="#8A8A8A" fontSize={12} />
                 <YAxis stroke="#8A8A8A" fontSize={12} tickFormatter={(value) => formatCurrencyShort(value)} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: "#FFFFFF", border: "1px solid #D1D1D1", borderRadius: "6px" }} 
-                  formatter={(value: number) => [formatCurrency(value), ""]} 
-                />
+                <Tooltip content={<DashboardRevenueTooltip />} />
                 <Legend />
                 <Bar dataKey="Rooms" fill="#111111" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Foods" fill="#4B4B4B" radius={[4, 4, 0, 0]} />

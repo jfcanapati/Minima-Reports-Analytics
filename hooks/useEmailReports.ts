@@ -5,6 +5,13 @@ import { ref, get, set, push, remove, update } from "firebase/database";
 import { database } from "@/lib/firebase";
 import { useToast } from "./useToast";
 
+export type ReportContent = 
+  | "full" 
+  | "pos_revenue" 
+  | "room_revenue" 
+  | "occupancy" 
+  | "bookings";
+
 export interface ScheduledReport {
   id: string;
   email: string;
@@ -16,6 +23,7 @@ export interface ScheduledReport {
   lastSent?: string;
   createdAt: string;
   createdBy: string;
+  reportContent?: ReportContent;
 }
 
 export function useScheduledReports() {
@@ -98,14 +106,27 @@ export function useSendReportNow() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ email, reportType }: { 
+    mutationFn: async ({ 
+      email, 
+      reportContent,
+      startDate,
+      endDate,
+    }: { 
       email: string; 
-      reportType: "daily" | "weekly" | "monthly";
+      reportContent: ReportContent;
+      startDate: string;
+      endDate: string;
     }) => {
       const response = await fetch("/api/reports/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, reportType, hotelName: "Minima Hotel" }),
+        body: JSON.stringify({ 
+          email, 
+          reportContent, 
+          startDate,
+          endDate,
+          hotelName: "Minima Hotel" 
+        }),
       });
 
       if (!response.ok) {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendReportEmail, ReportEmailData } from "@/lib/email";
 import * as admin from "firebase-admin";
 
+type ReportContent = "full" | "pos_revenue" | "room_revenue" | "occupancy" | "bookings";
+
 // Initialize Firebase Admin (server-side)
 function getFirebaseAdmin() {
   if (admin.apps.length === 0) {
@@ -115,7 +117,13 @@ async function calculateReportMetrics(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, reportType, hotelName = "Minima Hotel" } = body;
+    const { 
+      email, 
+      reportContent = "full", 
+      startDate: startDateStr, 
+      endDate: endDateStr,
+      hotelName = "Minima Hotel" 
+    } = body;
 
     if (!email) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
@@ -127,28 +135,29 @@ export async function POST(request: NextRequest) {
 
     const db = getFirebaseAdmin();
 
-    // Calculate date range based on report type
-    const endDate = new Date();
-    const startDate = new Date();
-
-    switch (reportType) {
-      case "daily":
-        startDate.setDate(startDate.getDate() - 1);
-        break;
-      case "weekly":
-        startDate.setDate(startDate.getDate() - 7);
-        break;
-      case "monthly":
-      default:
-        startDate.setMonth(startDate.getMonth() - 1);
-        break;
-    }
+    // Use provided date range or default to last 7 days
+    const endDate = endDateStr ? new Date(endDateStr + "T23:59:59") : new Date();
+    const startDate = startDateStr ? new Date(startDateStr + "T00:00:00") : (() => {
+      const d = new Date();
+      d.setDate(d.getDate() - 7);
+      return d;
+    })();
 
     const metrics = await calculateReportMetrics(db, startDate, endDate);
 
+    // Get report title based on content type
+    const reportTitles: Record<ReportContent, string> = {
+      full: "Full Report",
+      pos_revenue: "POS Revenue Report",
+      room_revenue: "Room Revenue Report",
+      occupancy: "Occupancy Report",
+      bookings: "Bookings Summary",
+    };
+
     const emailData: ReportEmailData = {
       to: email,
-      reportType: reportType || "monthly",
+      reportContent: reportContent as ReportContent,
+      reportTitle: reportTitles[reportContent as ReportContent] || "Full Report",
       hotelName,
       periodStart: startDate.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }),
       periodEnd: endDate.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }),

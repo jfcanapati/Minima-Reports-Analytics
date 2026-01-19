@@ -22,10 +22,72 @@ import {
 import { Skeleton } from "@/components/ui/Skeleton";
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  Bar, Legend, PieChart, Pie, Cell, ComposedChart, Line, BarChart 
+  Bar, Legend, PieChart, Pie, Cell, ComposedChart, Line, BarChart,
+  TooltipProps 
 } from "recharts";
 
 const COLORS = ["#111111", "#4B4B4B", "#8A8A8A", "#D1D1D1"];
+
+// Custom tooltip component for Revenue Trend chart
+const RevenueTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+  if (!active || !payload || payload.length === 0) return null;
+
+  const data = payload[0]?.payload;
+  if (!data) return null;
+
+  const rooms = data.rooms || 0;
+  const services = (data.foods || 0) + (data.services || 0) + (data.other || 0);
+  const total = data.total || (rooms + services);
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-4 min-w-[200px]">
+      <p className="font-semibold text-black mb-3 pb-2 border-b border-gray-100">{label}</p>
+      
+      {/* Room Revenue */}
+      <div className="flex items-center justify-between py-1.5">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-[#111111]" />
+          <span className="text-sm text-gray-600">Room Revenue</span>
+        </div>
+        <span className="text-sm font-medium text-black">{formatCurrency(rooms)}</span>
+      </div>
+      
+      {/* Services Revenue (Foods + Services + Other) */}
+      <div className="flex items-center justify-between py-1.5">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-[#4B4B4B]" />
+          <span className="text-sm text-gray-600">Services (POS)</span>
+        </div>
+        <span className="text-sm font-medium text-black">{formatCurrency(services)}</span>
+      </div>
+
+      {/* Breakdown of Services */}
+      <div className="ml-5 text-xs text-gray-500 space-y-1 py-1">
+        <div className="flex justify-between">
+          <span>• Foods</span>
+          <span>{formatCurrency(data.foods || 0)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>• Spa/Services</span>
+          <span>{formatCurrency(data.services || 0)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>• Other</span>
+          <span>{formatCurrency(data.other || 0)}</span>
+        </div>
+      </div>
+      
+      {/* Total */}
+      <div className="flex items-center justify-between pt-2 mt-2 border-t border-gray-200">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-sm bg-black" />
+          <span className="text-sm font-semibold text-black">Total</span>
+        </div>
+        <span className="text-sm font-bold text-black">{formatCurrency(total)}</span>
+      </div>
+    </div>
+  );
+};
 
 export default function RevenuePage() {
   const [startDate, setStartDate] = useState<Date | undefined>(new Date(new Date().setDate(new Date().getDate() - 30)));
@@ -155,10 +217,7 @@ export default function RevenuePage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#D1D1D1" />
                 <XAxis dataKey="month" stroke="#8A8A8A" fontSize={12} />
                 <YAxis stroke="#8A8A8A" fontSize={12} tickFormatter={(value) => formatCurrencyShort(value)} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: "#FFFFFF", border: "1px solid #D1D1D1", borderRadius: "6px" }} 
-                  formatter={(value: number) => [formatCurrency(value), ""]} 
-                />
+                <Tooltip content={<RevenueTooltip />} />
                 <Legend />
                 <Bar dataKey="rooms" name="Rooms" fill="#111111" radius={[4, 4, 0, 0]} stackId="stack" />
                 <Bar dataKey="foods" name="Foods" fill="#4B4B4B" radius={[0, 0, 0, 0]} stackId="stack" />

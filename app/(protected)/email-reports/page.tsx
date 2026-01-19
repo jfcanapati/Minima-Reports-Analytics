@@ -13,11 +13,20 @@ import {
   useDeleteScheduledReport,
   useUpdateScheduledReport,
   useSendReportNow,
+  ReportContent,
 } from "@/hooks/useEmailReports";
 import { useAuth } from "@/hooks/useAuth";
-import { Mail, Plus, Trash2, Send, Clock, Calendar, ToggleLeft, ToggleRight } from "lucide-react";
+import { Mail, Plus, Trash2, Send, Clock, Calendar, ToggleLeft, ToggleRight, FileText } from "lucide-react";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+const REPORT_CONTENT_OPTIONS: { value: ReportContent; label: string; description: string }[] = [
+  { value: "full", label: "Full Report", description: "All metrics including revenue, occupancy, and bookings" },
+  { value: "pos_revenue", label: "POS Revenue Only", description: "Point of Sale transactions and revenue" },
+  { value: "room_revenue", label: "Room Revenue Only", description: "Room bookings and accommodation revenue" },
+  { value: "occupancy", label: "Occupancy Report", description: "Occupancy rates and room utilization" },
+  { value: "bookings", label: "Bookings Summary", description: "Booking counts and guest statistics" },
+];
 
 export default function EmailReportsPage() {
   const [showForm, setShowForm] = useState(false);
@@ -28,7 +37,14 @@ export default function EmailReportsPage() {
   const [hour, setHour] = useState(8); // 8 AM
 
   const [sendNowEmail, setSendNowEmail] = useState("");
-  const [sendNowType, setSendNowType] = useState<"daily" | "weekly" | "monthly">("weekly");
+  const [sendNowContent, setSendNowContent] = useState<ReportContent>("full");
+  
+  // Date range state
+  const today = new Date();
+  const lastWeek = new Date(today);
+  lastWeek.setDate(today.getDate() - 7);
+  const [startDate, setStartDate] = useState(lastWeek.toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(today.toISOString().split('T')[0]);
 
   const { user } = useAuth();
   const { data: schedules, isLoading } = useScheduledReports();
@@ -60,7 +76,12 @@ export default function EmailReportsPage() {
 
   const handleSendNow = async () => {
     if (!sendNowEmail) return;
-    await sendNow.mutateAsync({ email: sendNowEmail, reportType: sendNowType });
+    await sendNow.mutateAsync({ 
+      email: sendNowEmail, 
+      reportContent: sendNowContent,
+      startDate,
+      endDate,
+    });
   };
 
   const formatScheduleTime = (schedule: any) => {
@@ -89,33 +110,77 @@ export default function EmailReportsPage() {
     <PageContainer title="Email Reports" subtitle="Schedule automated report delivery to your inbox">
       {/* Send Report Now */}
       <ChartCard title="Send Report Now" description="Instantly send a report to any email">
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="flex-1 min-w-[200px]">
-            <Label>Email Address</Label>
-            <Input
-              type="email"
-              value={sendNowEmail}
-              onChange={(e) => setSendNowEmail(e.target.value)}
-              placeholder="recipient@example.com"
-              className="mt-1"
-            />
+        <div className="space-y-4">
+          {/* Email and Date Range Row */}
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <Label>Email Address</Label>
+              <Input
+                type="email"
+                value={sendNowEmail}
+                onChange={(e) => setSendNowEmail(e.target.value)}
+                placeholder="recipient@example.com"
+                className="mt-1"
+              />
+            </div>
+            <div className="w-40">
+              <Label>Start Date</Label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div className="w-40">
+              <Label>End Date</Label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                max={today.toISOString().split('T')[0]}
+                className="mt-1"
+              />
+            </div>
           </div>
-          <div className="w-40">
-            <Label>Report Type</Label>
-            <select
-              value={sendNowType}
-              onChange={(e) => setSendNowType(e.target.value as any)}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none"
-            >
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
+
+          {/* Report Content Selection */}
+          <div>
+            <Label className="mb-2 block">Report Content</Label>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {REPORT_CONTENT_OPTIONS.map((option) => (
+                <label
+                  key={option.value}
+                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
+                    sendNowContent === option.value
+                      ? "border-black bg-gray-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="reportContent"
+                    value={option.value}
+                    checked={sendNowContent === option.value}
+                    onChange={(e) => setSendNowContent(e.target.value as ReportContent)}
+                    className="mt-1"
+                  />
+                  <div>
+                    <p className="font-medium text-sm text-black">{option.label}</p>
+                    <p className="text-xs text-gray-500">{option.description}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
           </div>
-          <Button onClick={handleSendNow} disabled={!sendNowEmail || sendNow.isPending}>
-            <Send className="h-4 w-4 mr-2" />
-            {sendNow.isPending ? "Sending..." : "Send Now"}
-          </Button>
+
+          {/* Send Button */}
+          <div className="flex justify-end">
+            <Button onClick={handleSendNow} disabled={!sendNowEmail || sendNow.isPending}>
+              <Send className="h-4 w-4 mr-2" />
+              {sendNow.isPending ? "Sending..." : "Send Report"}
+            </Button>
+          </div>
         </div>
       </ChartCard>
 
