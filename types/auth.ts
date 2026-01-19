@@ -11,3 +11,11 @@ export interface AuthState {
   roles: AppRole[];
   loading: boolean;
 }
+
+export interface UserProfile {
+  email: string;
+  fullName?: string;
+  role: AppRole;
+  landingPage: string;
+  createdAt?: string;
+}

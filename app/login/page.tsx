@@ -23,15 +23,15 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
-  const { signIn, signUp, user, loading } = useAuth();
+  const { signIn, signUp, user, loading, getLandingPage } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
     if (!loading && user) {
-      router.push("/dashboard");
+      router.push(getLandingPage());
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, getLandingPage]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -55,7 +55,7 @@ export default function LoginPage() {
           toast({ variant: "destructive", title: "Login failed", description: "Invalid email or password." });
         } else {
           toast({ title: "Welcome back!", description: "You have successfully logged in." });
-          router.push("/dashboard");
+          router.push(getLandingPage());
         }
       } else {
         if (!fullName.trim()) {
@@ -68,7 +68,7 @@ export default function LoginPage() {
           toast({ variant: "destructive", title: "Sign up failed", description: error.message });
         } else {
           toast({ title: "Account created!", description: "You have successfully signed up." });
-          router.push("/dashboard");
+          router.push(getLandingPage());
         }
       }
     } catch {
