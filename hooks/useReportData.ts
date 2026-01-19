@@ -587,6 +587,142 @@ export function useRevenueSummary(startDate?: Date, endDate?: Date) {
   });
 }
 
+// Detailed revenue breakdown by room type and POS categories
+export interface RoomTypeRevenue {
+  roomType: string;
+  revenue: number;
+  bookings: number;
+  avgRate: number;
+  nights: number;
+}
+
+export interface POSServiceRevenue {
+  category: string;
+  categoryName: string;
+  revenue: number;
+  items: number;
+}
+
+export interface DetailedRevenueBreakdown {
+  roomTypes: RoomTypeRevenue[];
+  posCategories: POSServiceRevenue[];
+  totalRoomRevenue: number;
+  totalPOSRevenue: number;
+}
+
+export function useDetailedRevenueBreakdown(startDate?: Date, endDate?: Date) {
+  const start = startDate ? formatDateStr(startDate) : null;
+  const end = endDate ? formatDateStr(endDate) : null;
+  
+  return useQuery({
+    queryKey: ["detailedRevenueBreakdown", start, end],
+    queryFn: async (): Promise<DetailedRevenueBreakdown> => {
+      const [bookingsSnapshot, posSnapshot, posItemsSnapshot, productsSnapshot, categoriesSnapshot, roomsSnapshot] = await Promise.all([
+        get(ref(database, "bookings")),
+        get(ref(database, "pos_transactions")),
+        get(ref(database, "pos_transaction_items")),
+        get(ref(database, "pos_products")),
+        get(ref(database, "pos_categories")),
+        get(ref(database, "rooms"))
+      ]);
+
+      let bookings = bookingsSnapshot.exists() ? Object.values(bookingsSnapshot.val()) : [];
+      let posTransactions = posSnapshot.exists() ? posSnapshot.val() : {};
+      const posItems = posItemsSnapshot.exists() ? Object.values(posItemsSnapshot.val()) : [];
+      const products = productsSnapshot.exists() ? productsSnapshot.val() : {};
+      const categories = categoriesSnapshot.exists() ? categoriesSnapshot.val() : {};
+      const rooms = roomsSnapshot.exists() ? roomsSnapshot.val() : {};
+
+      // Filter by date range
+      if (start && end) {
+        bookings = bookings.filter((b: any) => {
+          const createdAt = (b.createdAt || b.checkIn).split("T")[0];
+          return createdAt >= start && createdAt <= end;
+        });
+      }
+
+      // Get room rates by type
+      const roomRates: Record<string, number> = {};
+      Object.values(rooms).forEach((room: any) => {
+        if (!roomRates[room.type]) {
+          roomRates[room.type] = room.pricePerNight || 0;
+        }
+      });
+
+      // Calculate room type revenue
+      const roomTypeMap: Record<string, { revenue: number; bookings: number; nights: number }> = {};
+      const paidBookings = bookings.filter((b: any) => b.status === "paid" || b.status === "completed");
+      
+      paidBookings.forEach((b: any) => {
+        const roomType = b.roomType || "Unknown";
+        if (!roomTypeMap[roomType]) {
+          roomTypeMap[roomType] = { revenue: 0, bookings: 0, nights: 0 };
+        }
+        roomTypeMap[roomType].revenue += b.totalPrice || 0;
+        roomTypeMap[roomType].bookings += 1;
+        
+        // Calculate nights
+        const checkIn = new Date(b.checkIn);
+        const checkOut = new Date(b.checkOut);
+        const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+        roomTypeMap[roomType].nights += Math.max(1, nights);
+      });
+
+      const roomTypes: RoomTypeRevenue[] = Object.entries(roomTypeMap).map(([type, data]) => ({
+        roomType: type,
+        revenue: data.revenue,
+        bookings: data.bookings,
+        avgRate: data.nights > 0 ? data.revenue / data.nights : roomRates[type] || 0,
+        nights: data.nights,
+      })).sort((a, b) => b.revenue - a.revenue);
+
+      // Build product category map
+      const productCategoryMap: Record<string, string> = {};
+      Object.entries(products).forEach(([id, p]: [string, any]) => {
+        productCategoryMap[id] = p.category_id;
+      });
+
+      // Calculate POS category revenue
+      const posCategoryMap: Record<string, { revenue: number; items: number }> = {};
+      
+      posItems.forEach((item: any) => {
+        const trans = posTransactions[item.transaction_id];
+        if (!trans || trans.status !== "completed") return;
+        
+        // Filter by date
+        if (start && end) {
+          const transDate = trans.created_at.split("T")[0];
+          if (transDate < start || transDate > end) return;
+        }
+
+        const categoryId = productCategoryMap[item.product_id] || "other";
+        if (!posCategoryMap[categoryId]) {
+          posCategoryMap[categoryId] = { revenue: 0, items: 0 };
+        }
+        posCategoryMap[categoryId].revenue += item.total_price || 0;
+        posCategoryMap[categoryId].items += item.quantity || 1;
+      });
+
+      const posCategories: POSServiceRevenue[] = Object.entries(posCategoryMap).map(([catId, data]) => ({
+        category: catId,
+        categoryName: categories[catId]?.name || (catId === "foods" ? "Foods & Beverages" : catId === "services" ? "Spa & Services" : "Other Services"),
+        revenue: data.revenue,
+        items: data.items,
+      })).sort((a, b) => b.revenue - a.revenue);
+
+      const totalRoomRevenue = roomTypes.reduce((sum, r) => sum + r.revenue, 0);
+      const totalPOSRevenue = posCategories.reduce((sum, c) => sum + c.revenue, 0);
+
+      return {
+        roomTypes,
+        posCategories,
+        totalRoomRevenue,
+        totalPOSRevenue,
+      };
+    },
+  });
+}
+
 // Inventory items (placeholder - needs inventory module)
 export function useInventoryItems() {
   return useQuery({
