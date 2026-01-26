@@ -23,12 +23,165 @@ import { AlertCard } from "@/components/reports/AlertCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, BarChart, Bar, Legend 
+  ResponsiveContainer, BarChart, Bar, Legend, TooltipProps, ComposedChart, Line 
 } from "recharts";
+
+// Filter type for revenue chart
+type RevenueFilter = "all" | "rooms" | "services" | "total";
+
+// Custom tooltip component for Revenue chart with filter awareness
+const DashboardRevenueTooltip = ({ 
+  active, 
+  payload, 
+  label,
+  filter 
+}: TooltipProps<number, string> & { filter: RevenueFilter }) => {
+  if (!active || !payload || payload.length === 0) return null;
+
+  const data = payload[0]?.payload;
+  if (!data) return null;
+
+  const rooms = data.Rooms || 0;
+  const foods = data.Foods || 0;
+  const services = data.Services || 0;
+  const other = data.Other || 0;
+  const servicesTotal = foods + services + other;
+  const total = rooms + servicesTotal;
+
+  // Filtered views
+  if (filter === "rooms") {
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-4 min-w-[200px]">
+        <p className="font-semibold text-black mb-3 pb-2 border-b border-gray-100">{label}</p>
+        <div className="flex items-center justify-between py-1.5">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-[#111111]" />
+            <span className="text-sm text-gray-600">Room Revenue</span>
+          </div>
+          <span className="text-sm font-bold text-black">{formatCurrency(rooms)}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (filter === "services") {
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-4 min-w-[220px]">
+        <p className="font-semibold text-black mb-3 pb-2 border-b border-gray-100">{label}</p>
+        <div className="flex items-center justify-between py-1.5">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-[#4B4B4B]" />
+            <span className="text-sm font-medium text-gray-700">Services Total (POS)</span>
+          </div>
+          <span className="text-sm font-bold text-black">{formatCurrency(servicesTotal)}</span>
+        </div>
+        <div className="mt-2 pt-2 border-t border-gray-100 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#4B4B4B]" />
+              <span className="text-xs text-gray-500">Foods</span>
+            </div>
+            <span className="text-xs font-medium text-gray-700">{formatCurrency(foods)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#8A8A8A]" />
+              <span className="text-xs text-gray-500">Services</span>
+            </div>
+            <span className="text-xs font-medium text-gray-700">{formatCurrency(services)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#D1D1D1]" />
+              <span className="text-xs text-gray-500">Other</span>
+            </div>
+            <span className="text-xs font-medium text-gray-700">{formatCurrency(other)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (filter === "total") {
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-4 min-w-[200px]">
+        <p className="font-semibold text-black mb-3 pb-2 border-b border-gray-100">{label}</p>
+        <div className="flex items-center justify-between py-1.5">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-sm bg-black" />
+            <span className="text-sm font-semibold text-black">Total Revenue</span>
+          </div>
+          <span className="text-sm font-bold text-black">{formatCurrency(total)}</span>
+        </div>
+        <div className="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-500">
+          <div className="flex justify-between">
+            <span>Rooms</span>
+            <span>{formatCurrency(rooms)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Services</span>
+            <span>{formatCurrency(servicesTotal)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Default: Show all
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-4 min-w-[200px]">
+      <p className="font-semibold text-black mb-3 pb-2 border-b border-gray-100">{label}</p>
+      
+      {/* Room Revenue */}
+      <div className="flex items-center justify-between py-1.5">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-[#111111]" />
+          <span className="text-sm text-gray-600">Room Revenue</span>
+        </div>
+        <span className="text-sm font-medium text-black">{formatCurrency(rooms)}</span>
+      </div>
+      
+      {/* Services Revenue */}
+      <div className="flex items-center justify-between py-1.5">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-[#4B4B4B]" />
+          <span className="text-sm text-gray-600">Services (POS)</span>
+        </div>
+        <span className="text-sm font-medium text-black">{formatCurrency(servicesTotal)}</span>
+      </div>
+
+      {/* Breakdown */}
+      <div className="ml-5 text-xs text-gray-500 space-y-1 py-1">
+        <div className="flex justify-between">
+          <span>• Foods</span>
+          <span>{formatCurrency(foods)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>• Services</span>
+          <span>{formatCurrency(services)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>• Other</span>
+          <span>{formatCurrency(other)}</span>
+        </div>
+      </div>
+      
+      {/* Total */}
+      <div className="flex items-center justify-between pt-2 mt-2 border-t border-gray-200">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-sm bg-black" />
+          <span className="text-sm font-semibold text-black">Total</span>
+        </div>
+        <span className="text-sm font-bold text-black">{formatCurrency(total)}</span>
+      </div>
+    </div>
+  );
+};
 
 export default function DashboardPage() {
   const [startDate, setStartDate] = useState<Date | undefined>(new Date(new Date().setDate(new Date().getDate() - 30)));
   const [endDate, setEndDate] = useState<Date | undefined>(new Date());
+  const [revenueFilter, setRevenueFilter] = useState<RevenueFilter>("all");
 
   const { data: roomTypes = [], isLoading: roomTypesLoading } = useRoomTypes(endDate);
   const { data: bookingStats } = useBookingStats(startDate, endDate);
@@ -49,6 +202,8 @@ export default function DashboardPage() {
     Foods: item.restaurant,
     Services: item.spa,
     Other: item.other,
+    ServicesTotal: item.restaurant + item.spa + item.other,
+    Total: item.rooms + item.restaurant + item.spa + item.other,
   }));
 
   const kpis = [
@@ -164,23 +319,101 @@ export default function DashboardPage() {
           </div>
         </ChartCard>
 
-        <ChartCard title="Revenue by Category" description="Monthly revenue breakdown">
-          <div className="h-80">
+        <ChartCard title="Revenue by Category" description="Click filters to view specific data">
+          {/* Filter Buttons */}
+          <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b border-gray-100">
+            <button
+              onClick={() => setRevenueFilter("all")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                revenueFilter === "all"
+                  ? "bg-black text-white shadow-md"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full ${revenueFilter === "all" ? "bg-white" : "bg-gradient-to-r from-[#111111] to-[#8A8A8A]"}`} />
+              All
+            </button>
+            <button
+              onClick={() => setRevenueFilter("rooms")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                revenueFilter === "rooms"
+                  ? "bg-[#111111] text-white shadow-md"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full ${revenueFilter === "rooms" ? "bg-white" : "bg-[#111111]"}`} />
+              Rooms
+            </button>
+            <button
+              onClick={() => setRevenueFilter("services")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                revenueFilter === "services"
+                  ? "bg-[#4B4B4B] text-white shadow-md"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full ${revenueFilter === "services" ? "bg-white" : "bg-[#4B4B4B]"}`} />
+              Services
+            </button>
+            <button
+              onClick={() => setRevenueFilter("total")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                revenueFilter === "total"
+                  ? "bg-black text-white shadow-md"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-sm ${revenueFilter === "total" ? "bg-white" : "bg-black"}`} />
+              Total
+            </button>
+          </div>
+
+          <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={revenueChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#D1D1D1" />
-                <XAxis dataKey="month" stroke="#8A8A8A" fontSize={12} />
-                <YAxis stroke="#8A8A8A" fontSize={12} tickFormatter={(value) => formatCurrencyShort(value)} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: "#FFFFFF", border: "1px solid #D1D1D1", borderRadius: "6px" }} 
-                  formatter={(value: number) => [formatCurrency(value), ""]} 
-                />
-                <Legend />
-                <Bar dataKey="Rooms" fill="#111111" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Foods" fill="#4B4B4B" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Services" fill="#8A8A8A" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Other" fill="#D1D1D1" radius={[4, 4, 0, 0]} />
-              </BarChart>
+              {revenueFilter === "all" ? (
+                <BarChart data={revenueChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#D1D1D1" />
+                  <XAxis dataKey="month" stroke="#8A8A8A" fontSize={12} />
+                  <YAxis stroke="#8A8A8A" fontSize={12} tickFormatter={(value) => formatCurrencyShort(value)} />
+                  <Tooltip content={<DashboardRevenueTooltip filter={revenueFilter} />} />
+                  <Legend />
+                  <Bar dataKey="Rooms" fill="#111111" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Foods" fill="#4B4B4B" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Services" fill="#8A8A8A" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Other" fill="#D1D1D1" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              ) : revenueFilter === "rooms" ? (
+                <BarChart data={revenueChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#D1D1D1" />
+                  <XAxis dataKey="month" stroke="#8A8A8A" fontSize={12} />
+                  <YAxis stroke="#8A8A8A" fontSize={12} tickFormatter={(value) => formatCurrencyShort(value)} />
+                  <Tooltip content={<DashboardRevenueTooltip filter={revenueFilter} />} />
+                  <Legend />
+                  <Bar dataKey="Rooms" name="Room Revenue" fill="#111111" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              ) : revenueFilter === "services" ? (
+                <ComposedChart data={revenueChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#D1D1D1" />
+                  <XAxis dataKey="month" stroke="#8A8A8A" fontSize={12} />
+                  <YAxis stroke="#8A8A8A" fontSize={12} tickFormatter={(value) => formatCurrencyShort(value)} />
+                  <Tooltip content={<DashboardRevenueTooltip filter={revenueFilter} />} />
+                  <Legend />
+                  <Bar dataKey="Foods" fill="#4B4B4B" radius={[4, 4, 0, 0]} stackId="services" />
+                  <Bar dataKey="Services" fill="#8A8A8A" radius={[0, 0, 0, 0]} stackId="services" />
+                  <Bar dataKey="Other" fill="#D1D1D1" radius={[4, 4, 0, 0]} stackId="services" />
+                  <Line type="monotone" dataKey="ServicesTotal" name="Total" stroke="#4B4B4B" strokeWidth={2} dot={{ fill: "#4B4B4B", r: 3 }} />
+                </ComposedChart>
+              ) : (
+                <ComposedChart data={revenueChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#D1D1D1" />
+                  <XAxis dataKey="month" stroke="#8A8A8A" fontSize={12} />
+                  <YAxis stroke="#8A8A8A" fontSize={12} tickFormatter={(value) => formatCurrencyShort(value)} />
+                  <Tooltip content={<DashboardRevenueTooltip filter={revenueFilter} />} />
+                  <Legend />
+                  <Bar dataKey="Total" name="Total Revenue" fill="#111111" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="Total" name="Trend" stroke="#4B4B4B" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                </ComposedChart>
+              )}
             </ResponsiveContainer>
           </div>
         </ChartCard>

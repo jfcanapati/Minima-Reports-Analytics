@@ -1,8 +1,11 @@
 import * as Brevo from "@getbrevo/brevo";
 
+export type ReportContent = "full" | "pos_revenue" | "room_revenue" | "occupancy" | "bookings";
+
 export interface ReportEmailData {
   to: string;
-  reportType: "daily" | "weekly" | "monthly";
+  reportContent: ReportContent;
+  reportTitle: string;
   hotelName: string;
   periodStart: string;
   periodEnd: string;
@@ -34,7 +37,7 @@ export async function sendReportEmail(data: ReportEmailData) {
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount);
 
-  const reportTitle = `${data.reportType.charAt(0).toUpperCase() + data.reportType.slice(1)} Report`;
+  const reportTitle = data.reportTitle;
 
   const alertsHtml =
     data.alerts && data.alerts.length > 0
@@ -60,6 +63,78 @@ export async function sendReportEmail(data: ReportEmailData) {
     `
     : "";
 
+  // Build content sections based on report type
+  const showRevenue = data.reportContent === "full" || data.reportContent === "pos_revenue" || data.reportContent === "room_revenue";
+  const showOccupancy = data.reportContent === "full" || data.reportContent === "occupancy";
+  const showBookings = data.reportContent === "full" || data.reportContent === "bookings" || data.reportContent === "occupancy";
+
+  const revenueSection = showRevenue ? `
+        <h2 style="color: #111111; border-bottom: 2px solid #E6E1DA; padding-bottom: 10px;">
+          ${data.reportContent === "pos_revenue" ? "POS Revenue" : data.reportContent === "room_revenue" ? "Room Revenue" : "Revenue Summary"}
+        </h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          ${data.reportContent === "full" || data.reportContent === "room_revenue" ? `
+          <tr>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">${data.reportContent === "full" ? "Total Revenue" : "Room Revenue"}</td>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right; font-weight: bold; color: #111111;">${formatCurrency(data.reportContent === "full" ? data.metrics.totalRevenue : data.metrics.roomRevenue)}</td>
+          </tr>
+          ` : ""}
+          ${data.reportContent === "full" ? `
+          <tr>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">Room Revenue</td>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right;">${formatCurrency(data.metrics.roomRevenue)}</td>
+          </tr>
+          ` : ""}
+          ${data.reportContent === "full" || data.reportContent === "pos_revenue" ? `
+          <tr>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">POS Revenue</td>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right; ${data.reportContent === "pos_revenue" ? "font-weight: bold; color: #111111;" : ""}">${formatCurrency(data.metrics.posRevenue)}</td>
+          </tr>
+          ` : ""}
+        </table>
+  ` : "";
+
+  const occupancySection = showOccupancy ? `
+        <h2 style="color: #111111; border-bottom: 2px solid #E6E1DA; padding-bottom: 10px;">Occupancy</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <tr>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">Occupancy Rate</td>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right; font-weight: bold;">${data.metrics.occupancyRate}%</td>
+          </tr>
+          <tr>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">Avg Stay Duration</td>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right;">${data.metrics.averageStayDuration} nights</td>
+          </tr>
+        </table>
+  ` : "";
+
+  const bookingsSection = showBookings ? `
+        <h2 style="color: #111111; border-bottom: 2px solid #E6E1DA; padding-bottom: 10px;">Bookings</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <tr>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">Total Bookings</td>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right; font-weight: bold;">${data.metrics.totalBookings}</td>
+          </tr>
+          <tr>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">Online Bookings</td>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right;">${data.metrics.onlineBookings}</td>
+          </tr>
+          <tr>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">Walk-in Bookings</td>
+            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right;">${data.metrics.walkInBookings}</td>
+          </tr>
+        </table>
+  ` : "";
+
+  const topRoomSection = data.topRoom && (data.reportContent === "full" || data.reportContent === "room_revenue")
+    ? `
+          <div style="background-color: white; border: 1px solid #D1D1D1; padding: 16px; margin-bottom: 20px; border-radius: 4px;">
+            <p style="margin: 0; color: #8A8A8A;">🏆 Top Performing Room</p>
+            <p style="margin: 5px 0 0 0; font-size: 18px; font-weight: bold; color: #111111;">${data.topRoom}</p>
+          </div>
+        `
+    : "";
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -78,56 +153,10 @@ export async function sendReportEmail(data: ReportEmailData) {
           Report Period: <strong style="color: #1C1C1C;">${data.periodStart} - ${data.periodEnd}</strong>
         </p>
 
-        <h2 style="color: #111111; border-bottom: 2px solid #E6E1DA; padding-bottom: 10px;">Revenue Summary</h2>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-          <tr>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">Total Revenue</td>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right; font-weight: bold; color: #111111;">${formatCurrency(data.metrics.totalRevenue)}</td>
-          </tr>
-          <tr>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">Room Revenue</td>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right;">${formatCurrency(data.metrics.roomRevenue)}</td>
-          </tr>
-          <tr>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">POS Revenue</td>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right;">${formatCurrency(data.metrics.posRevenue)}</td>
-          </tr>
-        </table>
-
-        <h2 style="color: #111111; border-bottom: 2px solid #E6E1DA; padding-bottom: 10px;">Occupancy & Bookings</h2>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-          <tr>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">Occupancy Rate</td>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right; font-weight: bold;">${data.metrics.occupancyRate}%</td>
-          </tr>
-          <tr>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">Total Bookings</td>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right;">${data.metrics.totalBookings}</td>
-          </tr>
-          <tr>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">Online Bookings</td>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right;">${data.metrics.onlineBookings}</td>
-          </tr>
-          <tr>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">Walk-in Bookings</td>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right;">${data.metrics.walkInBookings}</td>
-          </tr>
-          <tr>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1;">Avg Stay Duration</td>
-            <td style="padding: 12px; background-color: white; border: 1px solid #D1D1D1; text-align: right;">${data.metrics.averageStayDuration} nights</td>
-          </tr>
-        </table>
-
-        ${
-          data.topRoom
-            ? `
-          <div style="background-color: white; border: 1px solid #D1D1D1; padding: 16px; margin-bottom: 20px; border-radius: 4px;">
-            <p style="margin: 0; color: #8A8A8A;">🏆 Top Performing Room</p>
-            <p style="margin: 5px 0 0 0; font-size: 18px; font-weight: bold; color: #111111;">${data.topRoom}</p>
-          </div>
-        `
-            : ""
-        }
+        ${revenueSection}
+        ${occupancySection}
+        ${bookingsSection}
+        ${topRoomSection}
 
         ${alertsHtml}
         ${forecastHtml}
