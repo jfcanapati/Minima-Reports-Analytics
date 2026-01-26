@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, BedDouble, DollarSign, Package, Settings, TrendingUp, PieChart, Target, FileText, Mail, RefreshCw } from "lucide-react";
+import { LayoutDashboard, BedDouble, DollarSign, Package, Settings, TrendingUp, PieChart, Target, FileText, Mail, RefreshCw, Users } from "lucide-react";
 import { useDataRefresh } from "@/hooks/useDataRefresh";
 import { useState, useEffect } from "react";
 
@@ -18,6 +18,7 @@ const navigation = [
   { name: "Email Reports", href: "/email-reports", icon: Mail },
   { name: "Audit Log", href: "/audit", icon: FileText },
   { name: "Inventory report", href: "/inventory", icon: Package },
+  { name: "User Management", href: "/user-management", icon: Users },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
