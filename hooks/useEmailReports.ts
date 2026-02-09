@@ -6,11 +6,11 @@ import { database } from "@/lib/firebase";
 import { useToast } from "./useToast";
 
 export type ReportContent = 
-  | "full" 
   | "pos_revenue" 
   | "room_revenue" 
   | "occupancy" 
-  | "bookings";
+  | "bookings"
+  | "inventory";
 
 export interface ScheduledReport {
   id: string;
@@ -108,12 +108,12 @@ export function useSendReportNow() {
   return useMutation({
     mutationFn: async ({ 
       email, 
-      reportContent,
+      reportContents,
       startDate,
       endDate,
     }: { 
       email: string; 
-      reportContent: ReportContent;
+      reportContents: ReportContent[];
       startDate: string;
       endDate: string;
     }) => {
@@ -122,7 +122,7 @@ export function useSendReportNow() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           email, 
-          reportContent, 
+          reportContents, // Send array of reports
           startDate,
           endDate,
           hotelName: "Minima Hotel" 
@@ -136,8 +136,12 @@ export function useSendReportNow() {
 
       return response.json();
     },
-    onSuccess: () => {
-      toast({ title: "Report sent!", description: "The report has been sent to your email." });
+    onSuccess: (_, variables) => {
+      const count = variables.reportContents.length;
+      toast({ 
+        title: "Reports sent!", 
+        description: `${count} report${count !== 1 ? 's' : ''} with PDF attachments sent to your email.` 
+      });
     },
     onError: (error: Error) => {
       toast({ variant: "destructive", title: "Failed to send", description: error.message });

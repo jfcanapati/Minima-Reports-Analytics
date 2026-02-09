@@ -10,14 +10,22 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
+    if (!loading) {
+      if (!user) {
+        router.push("/login");
+      } else if (profile && profile.role !== "admin") {
+        // Only admin can access this system
+        router.push("/unauthorized");
+      } else if (profile && profile.status === "inactive") {
+        // Inactive users cannot access the system
+        router.push("/unauthorized");
+      }
     }
-  }, [user, loading, router]);
+  }, [user, profile, loading, router]);
 
   if (loading) {
     return (
@@ -27,7 +35,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  if (!user) return null;
+  if (!user || (profile && (profile.role !== "admin" || profile.status === "inactive"))) return null;
 
   return <>{children}</>;
 }

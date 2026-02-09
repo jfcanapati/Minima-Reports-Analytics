@@ -9,17 +9,37 @@ import { useDataRefresh } from "@/hooks/useDataRefresh";
 import { useState, useEffect } from "react";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Occupancy report", href: "/occupancy", icon: BedDouble },
-  { name: "Revenue report", href: "/revenue", icon: DollarSign },
-  { name: "Analytics", href: "/analytics", icon: PieChart },
-  { name: "Forecast", href: "/forecast", icon: TrendingUp },
-  { name: "Goals", href: "/goals", icon: Target },
-  { name: "Email Reports", href: "/email-reports", icon: Mail },
-  { name: "Audit Log", href: "/audit", icon: FileText },
-  { name: "Inventory report", href: "/inventory", icon: Package },
-  { name: "User Management", href: "/user-management", icon: Users },
-  { name: "Settings", href: "/settings", icon: Settings },
+  {
+    category: "Reports",
+    items: [
+      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { name: "Occupancy", href: "/occupancy", icon: BedDouble },
+      { name: "Revenue", href: "/revenue", icon: DollarSign },
+      { name: "Inventory", href: "/inventory", icon: Package },
+    ],
+  },
+  {
+    category: "Insights",
+    items: [
+      { name: "Analytics", href: "/analytics", icon: PieChart },
+      { name: "Forecast", href: "/forecast", icon: TrendingUp },
+      { name: "Goals", href: "/goals", icon: Target },
+    ],
+  },
+  {
+    category: "Communications",
+    items: [
+      { name: "Email Reports", href: "/email-reports", icon: Mail },
+    ],
+  },
+  {
+    category: "Administration",
+    items: [
+      { name: "Audit Log", href: "/audit", icon: FileText },
+      { name: "Users", href: "/users", icon: Users },
+      { name: "Settings", href: "/settings", icon: Settings },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -70,16 +90,36 @@ export function Sidebar() {
           <Image src="/minima-logo.png" alt="Minima Hotel" width={100} height={32} className="h-6 w-auto object-contain" />
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-6">
-          <div className="mb-4 px-3"><p className="text-xs font-medium text-gray-500">Main menu</p></div>
-          {navigation.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link key={item.name} href={item.href} className={cn("flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm font-body transition-colors duration-200", isActive ? "bg-black text-white" : "text-gray-500 hover:bg-gray-100 hover:text-black")}>
-                <item.icon className="h-4 w-4" />{item.name}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 space-y-1 px-3 py-6 overflow-y-auto">
+          {navigation.map((section) => (
+            <div key={section.category} className="mb-6">
+              <div className="mb-2 px-3">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {section.category}
+                </p>
+              </div>
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={`${section.category}-${item.href}`}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm font-body transition-colors duration-200",
+                        isActive
+                          ? "bg-black text-white"
+                          : "text-gray-500 hover:bg-gray-100 hover:text-black"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="border-t border-gray-300 p-4">

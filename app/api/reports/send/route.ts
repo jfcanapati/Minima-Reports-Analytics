@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendReportEmail, ReportEmailData } from "@/lib/email";
+import { sendReportEmailWithPDFs, ReportEmailData } from "@/lib/email";
+import { generateReportPDFs } from "@/lib/pdfGenerator";
 import * as admin from "firebase-admin";
 
-type ReportContent = "full" | "pos_revenue" | "room_revenue" | "occupancy" | "bookings";
+type ReportContent = "pos_revenue" | "room_revenue" | "occupancy" | "bookings" | "inventory";
 
 // Initialize Firebase Admin (server-side)
 function getFirebaseAdmin() {
@@ -119,7 +120,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { 
       email, 
-      reportContent = "full", 
+      reportContents = ["room_revenue"], // Now accepts array
       startDate: startDateStr, 
       endDate: endDateStr,
       hotelName = "Minima Hotel" 
@@ -127,6 +128,10 @@ export async function POST(request: NextRequest) {
 
     if (!email) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    }
+
+    if (!Array.isArray(reportContents) || reportContents.length === 0) {
+      return NextResponse.json({ error: "At least one report type is required" }, { status: 400 });
     }
 
     if (!process.env.BREVO_API_KEY) {
@@ -145,19 +150,30 @@ export async function POST(request: NextRequest) {
 
     const metrics = await calculateReportMetrics(db, startDate, endDate);
 
-    // Get report title based on content type
+    // Get report titles
     const reportTitles: Record<ReportContent, string> = {
-      full: "Full Report",
       pos_revenue: "POS Revenue Report",
       room_revenue: "Room Revenue Report",
       occupancy: "Occupancy Report",
       bookings: "Bookings Summary",
+      inventory: "Inventory Report",
     };
+
+    // Generate PDFs for each selected report
+    const pdfAttachments = await generateReportPDFs(
+      reportContents as ReportContent[],
+      {
+        hotelName,
+        periodStart: startDate.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }),
+        periodEnd: endDate.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }),
+        metrics,
+      }
+    );
 
     const emailData: ReportEmailData = {
       to: email,
-      reportContent: reportContent as ReportContent,
-      reportTitle: reportTitles[reportContent as ReportContent] || "Full Report",
+      reportContents: reportContents as ReportContent[], // Array of reports
+      reportTitles: reportContents.map(rc => reportTitles[rc as ReportContent]),
       hotelName,
       periodStart: startDate.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }),
       periodEnd: endDate.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }),
@@ -173,9 +189,10 @@ export async function POST(request: NextRequest) {
       },
       alerts: metrics.alerts,
       topRoom: metrics.topRoom,
+      pdfAttachments, // Add PDF attachments
     };
 
-    const result = await sendReportEmail(emailData);
+    const result = await sendReportEmailWithPDFs(emailData);
 
     return NextResponse.json({ success: true, messageId: result?.body?.messageId || "sent" });
   } catch (error: any) {

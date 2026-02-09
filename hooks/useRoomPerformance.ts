@@ -6,6 +6,7 @@ import { database } from "@/lib/firebase";
 
 export interface RoomPerformance {
   roomId: string;
+  roomNumber: string;
   roomType: string;
   totalBookings: number;
   totalRevenue: number;
@@ -55,6 +56,7 @@ export function useRoomPerformance(startDate?: Date, endDate?: Date) {
       Object.entries(rooms).forEach(([roomId, room]: [string, any]) => {
         roomPerformance[roomId] = {
           roomId,
+          roomNumber: room.roomNumber || roomId,
           roomType: room.type || "Unknown",
           totalBookings: 0,
           totalRevenue: 0,
@@ -72,9 +74,12 @@ export function useRoomPerformance(startDate?: Date, endDate?: Date) {
       filteredBookings.forEach((b) => {
         const roomId = b.roomId;
         if (!roomPerformance[roomId]) {
+          // If room not in rooms table, try to get info from booking
+          const room = rooms[roomId];
           roomPerformance[roomId] = {
             roomId,
-            roomType: b.roomType || "Unknown",
+            roomNumber: room?.roomNumber || b.roomNumber || roomId,
+            roomType: room?.type || b.roomType || "Unknown",
             totalBookings: 0,
             totalRevenue: 0,
             averageRevenue: 0,

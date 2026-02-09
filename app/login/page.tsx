@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useToast } from "@/hooks/useToast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import { z } from "zod";
 
@@ -21,17 +21,18 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
-  const { signIn, signUp, user, loading, getLandingPage } = useAuth();
+  const { signIn, signUp, user, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
     if (!loading && user) {
-      router.push(getLandingPage());
+      router.push("/dashboard");
     }
-  }, [user, loading, router, getLandingPage]);
+  }, [user, loading, router]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -55,7 +56,7 @@ export default function LoginPage() {
           toast({ variant: "destructive", title: "Login failed", description: "Invalid email or password." });
         } else {
           toast({ title: "Welcome back!", description: "You have successfully logged in." });
-          router.push(getLandingPage());
+          router.push("/dashboard");
         }
       } else {
         if (!fullName.trim()) {
@@ -68,7 +69,7 @@ export default function LoginPage() {
           toast({ variant: "destructive", title: "Sign up failed", description: error.message });
         } else {
           toast({ title: "Account created!", description: "You have successfully signed up." });
-          router.push(getLandingPage());
+          router.push("/dashboard");
         }
       }
     } catch {
@@ -93,8 +94,10 @@ export default function LoginPage() {
           <div className="mx-auto mb-4">
             <Image src="/minima-logo.png" alt="Minima Hotel" width={100} height={32} className="h-7 w-auto object-contain" />
           </div>
-          <CardTitle className="text-2xl font-bold">{isLogin ? "Welcome Back" : "Create Account"}</CardTitle>
-          <CardDescription>{isLogin ? "Sign in to access Hotel Analytics" : "Sign up to get started"}</CardDescription>
+          <CardTitle className="text-2xl font-bold">{isLogin ? "Admin Login" : "Create Account"}</CardTitle>
+          <CardDescription>
+            {isLogin ? "Reports & Analytics System" : "Sign up to get started"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -111,7 +114,32 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors({ ...errors, password: undefined }); }} disabled={isSubmitting} />
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="••••••••" 
+                  value={password} 
+                  onChange={(e) => { 
+                    setPassword(e.target.value); 
+                    if (errors.password) setErrors({ ...errors, password: undefined }); 
+                  }} 
+                  disabled={isSubmitting}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                  disabled={isSubmitting}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
             </div>
             <Button type="submit" className="w-full" disabled={isSubmitting}>

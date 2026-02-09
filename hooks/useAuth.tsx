@@ -1,10 +1,10 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as firebaseSignOut, updateProfile } from "firebase/auth";
 import { ref, set, get } from "firebase/database";
 import { auth, database } from "@/lib/firebase";
-import { DEFAULT_APP_ROLE, ROLE_LANDING_PAGES } from "@/lib/constants";
+import { APP_ROLES } from "@/lib/constants";
 import { UserProfile } from "@/types/auth";
 
 interface AuthContextType {
@@ -12,9 +12,8 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  getLandingPage: () => string;
   refreshProfile: () => Promise<void>;
 }
 
@@ -47,12 +46,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userProfileRef = ref(database, `users/${currentUser.uid}`);
       const snapshot = await get(userProfileRef);
 
+      const now = new Date().toISOString();
       const baseProfile: UserProfile = {
         email: currentUser.email ?? "",
-        fullName: currentUser.displayName ?? "",
-        role: DEFAULT_APP_ROLE,
-        landingPage: ROLE_LANDING_PAGES[DEFAULT_APP_ROLE],
-        createdAt: new Date().toISOString(),
+        name: currentUser.displayName ?? "",
+        role: APP_ROLES.ADMIN, // Admin-only system
+        status: "active",
+        createdAt: now,
+        updatedAt: now,
       };
 
       if (snapshot.exists()) {
@@ -60,8 +61,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setProfile({
           ...baseProfile,
           ...data,
-          role: data?.role ?? DEFAULT_APP_ROLE,
-          landingPage: data?.landingPage ?? ROLE_LANDING_PAGES[data?.role as keyof typeof ROLE_LANDING_PAGES] ?? ROLE_LANDING_PAGES[DEFAULT_APP_ROLE],
+          role: data?.role ?? APP_ROLES.ADMIN,
+          status: data?.status ?? "active",
         });
       } else {
         await set(userProfileRef, baseProfile);
@@ -90,22 +91,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, name: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
       // Update profile with display name
-      await updateProfile(user, { displayName: fullName });
+      await updateProfile(user, { displayName: name });
 
-      // Save user profile to Realtime Database
+      // Save user profile to Realtime Database with admin role
+      const now = new Date().toISOString();
       const userProfileRef = ref(database, `users/${user.uid}`);
       await set(userProfileRef, {
         email: user.email,
-        fullName: fullName,
-        role: DEFAULT_APP_ROLE,
-        landingPage: ROLE_LANDING_PAGES[DEFAULT_APP_ROLE],
-        createdAt: new Date().toISOString(),
+        name: name,
+        role: APP_ROLES.ADMIN, // Admin-only system
+        status: "active",
+        createdAt: now,
+        updatedAt: now,
       });
 
       return { error: null };
@@ -118,11 +121,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await firebaseSignOut(auth);
   };
 
-  const getLandingPage = useCallback(() => {
-    if (!profile) return ROLE_LANDING_PAGES[DEFAULT_APP_ROLE];
-    return profile.landingPage || ROLE_LANDING_PAGES[profile.role] || ROLE_LANDING_PAGES[DEFAULT_APP_ROLE];
-  }, [profile]);
-
   return (
     <AuthContext.Provider
       value={{
@@ -132,7 +130,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signIn,
         signUp,
         signOut,
-        getLandingPage,
         refreshProfile,
       }}
     >

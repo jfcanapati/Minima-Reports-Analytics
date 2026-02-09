@@ -205,27 +205,28 @@ export default function AnalyticsPage() {
           />
           <KPICard
             title="Top Room"
-            value={roomData?.topPerformer?.roomType || "N/A"}
-            subtitle={formatCurrency(roomData?.topPerformer?.totalRevenue || 0)}
+            value={roomData?.topPerformer?.roomNumber || "N/A"}
+            subtitle={`${roomData?.topPerformer?.roomType || ""} - ${formatCurrency(roomData?.topPerformer?.totalRevenue || 0)}`}
             icon={<BedDouble className="h-6 w-6" />}
             variant="success"
           />
           <KPICard
             title="Needs Attention"
-            value={roomData?.lowestPerformer?.roomType || "N/A"}
-            subtitle={formatCurrency(roomData?.lowestPerformer?.totalRevenue || 0)}
+            value={roomData?.lowestPerformer?.roomNumber || "N/A"}
+            subtitle={`${roomData?.lowestPerformer?.roomType || ""} - ${formatCurrency(roomData?.lowestPerformer?.totalRevenue || 0)}`}
             icon={<BedDouble className="h-6 w-6" />}
             variant="warning"
           />
         </div>
 
         <div className="mt-6">
-          <ChartCard title="Room Performance Ranking" description="Revenue and bookings by room">
+          <ChartCard title="Room Performance Ranking" description="Revenue and bookings by room number">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 font-medium text-gray-500">Rank</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-500">Room #</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-500">Room Type</th>
                     <th className="text-center py-3 px-4 font-medium text-gray-500">Bookings</th>
                     <th className="text-center py-3 px-4 font-medium text-gray-500">Occupancy</th>
@@ -243,7 +244,8 @@ export default function AnalyticsPage() {
                           {room.rank}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-medium text-black">{room.roomType}</td>
+                      <td className="py-3 px-4 font-bold text-black">{room.roomNumber}</td>
+                      <td className="py-3 px-4 text-gray-600">{room.roomType}</td>
                       <td className="py-3 px-4 text-center">{room.totalBookings}</td>
                       <td className="py-3 px-4 text-center">{room.occupancyRate}%</td>
                       <td className="py-3 px-4 text-center">{room.averageStay} nights</td>

@@ -1,9 +1,9 @@
-export type AppRole = "hotel_manager" | "finance_manager" | "operations_manager";
+export type AppRole = "client" | "receptionist" | "manager" | "inventory-controller" | "kitchen-staff" | "purchasing-officer" | "admin";
 
 export interface User {
   id: string;
   email: string;
-  full_name?: string;
+  name?: string;
 }
 
 export interface AuthState {
@@ -14,8 +14,10 @@ export interface AuthState {
 
 export interface UserProfile {
   email: string;
-  fullName?: string;
+  name?: string;
+  phone?: string;
   role: AppRole;
-  landingPage: string;
+  status?: "active" | "inactive";
   createdAt?: string;
+  updatedAt?: string;
 }

@@ -21,11 +21,11 @@ import { Mail, Plus, Trash2, Send, Clock, Calendar, ToggleLeft, ToggleRight, Fil
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 const REPORT_CONTENT_OPTIONS: { value: ReportContent; label: string; description: string }[] = [
-  { value: "full", label: "Full Report", description: "All metrics including revenue, occupancy, and bookings" },
-  { value: "pos_revenue", label: "POS Revenue Only", description: "Point of Sale transactions and revenue" },
-  { value: "room_revenue", label: "Room Revenue Only", description: "Room bookings and accommodation revenue" },
+  { value: "pos_revenue", label: "POS Revenue", description: "Point of Sale transactions and revenue" },
+  { value: "room_revenue", label: "Room Revenue", description: "Room bookings and accommodation revenue" },
   { value: "occupancy", label: "Occupancy Report", description: "Occupancy rates and room utilization" },
   { value: "bookings", label: "Bookings Summary", description: "Booking counts and guest statistics" },
+  { value: "inventory", label: "Inventory Report", description: "Stock levels, procurement, and kitchen inventory" },
 ];
 
 export default function EmailReportsPage() {
@@ -37,7 +37,7 @@ export default function EmailReportsPage() {
   const [hour, setHour] = useState(8); // 8 AM
 
   const [sendNowEmail, setSendNowEmail] = useState("");
-  const [sendNowContent, setSendNowContent] = useState<ReportContent>("full");
+  const [sendNowContent, setSendNowContent] = useState<ReportContent[]>(["room_revenue", "occupancy"]);
   
   // Date range state
   const today = new Date();
@@ -52,6 +52,18 @@ export default function EmailReportsPage() {
   const deleteSchedule = useDeleteScheduledReport();
   const updateSchedule = useUpdateScheduledReport();
   const sendNow = useSendReportNow();
+
+  const handleToggleReportContent = (content: ReportContent) => {
+    setSendNowContent(prev => {
+      if (prev.includes(content)) {
+        // Don't allow deselecting if it's the only one selected
+        if (prev.length === 1) return prev;
+        return prev.filter(c => c !== content);
+      } else {
+        return [...prev, content];
+      }
+    });
+  };
 
   const handleCreateSchedule = async () => {
     if (!email || !user) return;
@@ -75,10 +87,12 @@ export default function EmailReportsPage() {
   };
 
   const handleSendNow = async () => {
-    if (!sendNowEmail) return;
+    if (!sendNowEmail || sendNowContent.length === 0) return;
+    
+    // Send one email with all selected reports
     await sendNow.mutateAsync({ 
       email: sendNowEmail, 
-      reportContent: sendNowContent,
+      reportContents: sendNowContent, // Changed to array
       startDate,
       endDate,
     });
@@ -146,23 +160,26 @@ export default function EmailReportsPage() {
 
           {/* Report Content Selection */}
           <div>
-            <Label className="mb-2 block">Report Content</Label>
+            <Label className="mb-2 block">
+              Report Content 
+              <span className="text-xs text-gray-500 ml-2">
+                (Select one or more - {sendNowContent.length} selected)
+              </span>
+            </Label>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {REPORT_CONTENT_OPTIONS.map((option) => (
                 <label
                   key={option.value}
                   className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
-                    sendNowContent === option.value
+                    sendNowContent.includes(option.value)
                       ? "border-black bg-gray-50"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
                   <input
-                    type="radio"
-                    name="reportContent"
-                    value={option.value}
-                    checked={sendNowContent === option.value}
-                    onChange={(e) => setSendNowContent(e.target.value as ReportContent)}
+                    type="checkbox"
+                    checked={sendNowContent.includes(option.value)}
+                    onChange={() => handleToggleReportContent(option.value)}
                     className="mt-1"
                   />
                   <div>
@@ -176,9 +193,9 @@ export default function EmailReportsPage() {
 
           {/* Send Button */}
           <div className="flex justify-end">
-            <Button onClick={handleSendNow} disabled={!sendNowEmail || sendNow.isPending}>
+            <Button onClick={handleSendNow} disabled={!sendNowEmail || sendNowContent.length === 0 || sendNow.isPending}>
               <Send className="h-4 w-4 mr-2" />
-              {sendNow.isPending ? "Sending..." : "Send Report"}
+              {sendNow.isPending ? "Sending..." : `Send ${sendNowContent.length} Report${sendNowContent.length !== 1 ? 's' : ''}`}
             </Button>
           </div>
         </div>
