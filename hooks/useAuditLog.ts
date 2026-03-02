@@ -21,6 +21,7 @@ export function useAuditLog(limit: number = 50, category?: string) {
   return useQuery({
     queryKey: ["auditLog", limit, category],
     queryFn: async (): Promise<AuditLogEntry[]> => {
+      if (!database) return [];
       const logsRef = ref(database, "audit_logs");
       const logsQuery = query(logsRef, orderByChild("timestamp"), limitToLast(limit * 2));
       const snapshot = await get(logsQuery);

@@ -28,6 +28,7 @@ export function useRoomPerformance(startDate?: Date, endDate?: Date) {
   return useQuery({
     queryKey: ["roomPerformance", startDate?.toISOString(), endDate?.toISOString()],
     queryFn: async (): Promise<RoomPerformanceData> => {
+      if (!database) return { rooms: [], topPerformer: null, lowestPerformer: null, totalRoomRevenue: 0, averageOccupancy: 0 };
       const [roomsSnapshot, bookingsSnapshot] = await Promise.all([
         get(ref(database, "rooms")),
         get(ref(database, "bookings"))

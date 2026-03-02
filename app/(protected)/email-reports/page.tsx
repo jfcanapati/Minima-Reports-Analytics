@@ -67,7 +67,7 @@ export default function EmailReportsPage() {
     const term = searchTerm.toLowerCase();
     return users.filter(u => 
       u.status === 'active' && 
-      (u.email.toLowerCase().includes(term) || u.name.toLowerCase().includes(term))
+      (u.email.toLowerCase().includes(term) || u.name?.toLowerCase().includes(term))
     );
   };
 

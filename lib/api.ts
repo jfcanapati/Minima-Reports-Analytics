@@ -8,6 +8,7 @@ export async function fetchFromFirebase<T>(
     limit?: number 
   }
 ): Promise<T[]> {
+  if (!database) return [];
   let dbRef = ref(database, path);
   
   if (options?.orderBy) {

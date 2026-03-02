@@ -46,6 +46,7 @@ export function useRoomTypes(targetDate?: Date) {
   return useQuery({
     queryKey: ["roomTypes", dateStr],
     queryFn: async (): Promise<RoomType[]> => {
+      if (!database) return [];
       const [roomsSnapshot, bookingsSnapshot] = await Promise.all([
         get(ref(database, "rooms")),
         get(ref(database, "bookings"))
@@ -110,6 +111,7 @@ export function useBookings(startDate?: Date, endDate?: Date) {
   return useQuery({
     queryKey: ["bookings", start, end],
     queryFn: async (): Promise<Booking[]> => {
+      if (!database) return [];
       const snapshot = await get(ref(database, "bookings"));
       if (!snapshot.exists()) return [];
 
@@ -152,6 +154,7 @@ export function useBookingStats(startDate?: Date, endDate?: Date) {
   return useQuery({
     queryKey: ["bookingStats", start, end],
     queryFn: async () => {
+      if (!database) return { total: 0, walkIn: 0, online: 0, totalRevenue: 0 };
       const snapshot = await get(ref(database, "bookings"));
       if (!snapshot.exists()) return { total: 0, walkIn: 0, online: 0, totalRevenue: 0 };
 
@@ -185,6 +188,7 @@ export function useDailyOccupancy(startDate?: Date, endDate?: Date) {
   return useQuery({
     queryKey: ["dailyOccupancy", formatDateStr(start), formatDateStr(end)],
     queryFn: async (): Promise<DailyOccupancy[]> => {
+      if (!database) return [];
       const [roomsSnapshot, bookingsSnapshot] = await Promise.all([
         get(ref(database, "rooms")),
         get(ref(database, "bookings"))
@@ -232,6 +236,7 @@ export function useMonthlyOccupancy(startDate?: Date, endDate?: Date) {
   return useQuery({
     queryKey: ["monthlyOccupancy", formatDateStr(start), formatDateStr(end)],
     queryFn: async (): Promise<MonthlyOccupancy[]> => {
+      if (!database) return [];
       const [roomsSnapshot, bookingsSnapshot] = await Promise.all([
         get(ref(database, "rooms")),
         get(ref(database, "bookings"))
@@ -295,6 +300,7 @@ export function useMonthlyRevenue(startDate?: Date, endDate?: Date) {
   return useQuery({
     queryKey: ["monthlyRevenue", formatDateStr(start), formatDateStr(end)],
     queryFn: async (): Promise<MonthlyRevenue[]> => {
+      if (!database) return [];
       const [bookingsSnapshot, posSnapshot, posItemsSnapshot, productsSnapshot] = await Promise.all([
         get(ref(database, "bookings")),
         get(ref(database, "pos_transactions")),
@@ -385,6 +391,7 @@ export function usePOSCategoryRevenue() {
   return useQuery({
     queryKey: ["posCategoryRevenue"],
     queryFn: async (): Promise<POSCategoryRevenue[]> => {
+      if (!database) return [];
       const [posSnapshot, posItemsSnapshot, productsSnapshot, categoriesSnapshot] = await Promise.all([
         get(ref(database, "pos_transactions")),
         get(ref(database, "pos_transaction_items")),
@@ -440,6 +447,7 @@ export function usePaymentMethodBreakdown() {
   return useQuery({
     queryKey: ["paymentMethodBreakdown"],
     queryFn: async (): Promise<PaymentMethodBreakdown[]> => {
+      if (!database) return [];
       const posSnapshot = await get(ref(database, "pos_transactions"));
       if (!posSnapshot.exists()) return [];
 
@@ -484,6 +492,7 @@ export function useTopProducts(limit: number = 10) {
   return useQuery({
     queryKey: ["topProducts", limit],
     queryFn: async (): Promise<TopProduct[]> => {
+      if (!database) return [];
       const [posSnapshot, posItemsSnapshot, productsSnapshot, categoriesSnapshot] = await Promise.all([
         get(ref(database, "pos_transactions")),
         get(ref(database, "pos_transaction_items")),
@@ -548,6 +557,7 @@ export function useRevenueSummary(startDate?: Date, endDate?: Date) {
   return useQuery({
     queryKey: ["revenueSummary", start, end],
     queryFn: async (): Promise<RevenueSummary> => {
+      if (!database) return { totalRoomRevenue: 0, totalPOSRevenue: 0, totalRevenue: 0, avgTransactionValue: 0, totalTransactions: 0, taxCollected: 0 };
       const [bookingsSnapshot, posSnapshot] = await Promise.all([
         get(ref(database, "bookings")),
         get(ref(database, "pos_transactions"))
@@ -617,6 +627,7 @@ export function useDetailedRevenueBreakdown(startDate?: Date, endDate?: Date) {
   return useQuery({
     queryKey: ["detailedRevenueBreakdown", start, end],
     queryFn: async (): Promise<DetailedRevenueBreakdown> => {
+      if (!database) return { roomTypes: [], posCategories: [], totalRoomRevenue: 0, totalPOSRevenue: 0 };
       const [bookingsSnapshot, posSnapshot, posItemsSnapshot, productsSnapshot, categoriesSnapshot, roomsSnapshot] = await Promise.all([
         get(ref(database, "bookings")),
         get(ref(database, "pos_transactions")),
@@ -783,6 +794,8 @@ export function usePeriodComparison(startDate?: Date, endDate?: Date) {
   return useQuery({
     queryKey: ["periodComparison", formatDateStr(start), formatDateStr(end)],
     queryFn: async (): Promise<PeriodComparison> => {
+      const emptyPeriod = { revenue: 0, roomRevenue: 0, posRevenue: 0, bookings: 0, occupancyRate: 0, adr: 0, revpar: 0 };
+      if (!database) return { current: emptyPeriod, previous: emptyPeriod, changes: emptyPeriod };
       const [roomsSnapshot, bookingsSnapshot, posSnapshot] = await Promise.all([
         get(ref(database, "rooms")),
         get(ref(database, "bookings")),
@@ -943,6 +956,7 @@ export function useCombinedReportData(startDate?: Date, endDate?: Date) {
   return useQuery({
     queryKey: ["combinedReportData", start, end],
     queryFn: async (): Promise<CombinedReportData> => {
+      if (!database) return { totalRevenue: 0, roomRevenue: 0, posRevenue: 0, occupancyRate: 0, totalBookings: 0, onlineBookings: 0, walkInBookings: 0 };
       const [roomsSnapshot, bookingsSnapshot, posSnapshot] = await Promise.all([
         get(ref(database, "rooms")),
         get(ref(database, "bookings")),

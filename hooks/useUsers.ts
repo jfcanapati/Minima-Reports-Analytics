@@ -21,6 +21,11 @@ export function useUsers() {
     setLoading(true);
     setError(null);
     try {
+      if (!database) {
+        setUsers([]);
+        setLoading(false);
+        return;
+      }
       const usersRef = ref(database, "users");
       const snapshot = await get(usersRef);
       

@@ -14,6 +14,11 @@ export function useInventory() {
     setLoading(true);
     setError(null);
     try {
+      if (!database) {
+        setItems([]);
+        setLoading(false);
+        return;
+      }
       const inventoryRef = ref(database, "inventory");
       const snapshot = await get(inventoryRef);
       

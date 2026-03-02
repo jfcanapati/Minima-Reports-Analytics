@@ -22,6 +22,7 @@ export function usePeakAnalysis(startDate?: Date, endDate?: Date) {
   return useQuery({
     queryKey: ["peakAnalysis", startDate?.toISOString(), endDate?.toISOString()],
     queryFn: async (): Promise<PeakAnalysisData> => {
+      if (!database) return { checkInsByHour: [], bookingsByDayOfWeek: [], bookingsByMonth: [], peakHour: "", peakDay: "", peakMonth: "", slowestDay: "", weekdayVsWeekend: { weekday: 0, weekend: 0, weekdayRevenue: 0, weekendRevenue: 0 } };
       const bookingsSnapshot = await get(ref(database, "bookings"));
       const allBookings: any[] = bookingsSnapshot.exists() ? Object.values(bookingsSnapshot.val()) : [];
 
