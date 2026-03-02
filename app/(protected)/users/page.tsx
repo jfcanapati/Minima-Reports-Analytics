@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/Label";
 import { Badge } from "@/components/ui/Badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel, SelectSeparator, SelectGroup } from "@/components/ui/Select";
 import { Users, UserPlus, Pencil, Ban, CheckCircle, Loader2, Search, Eye, EyeOff, Filter } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { APP_ROLES, AppRole } from "@/lib/constants";
@@ -181,78 +181,188 @@ export default function UsersPage() {
               Add User
             </Button>
           </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-3xl">
                 <DialogHeader>
                   <DialogTitle>Add New User</DialogTitle>
                   <DialogDescription>Create a new user account with email and password</DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="add-email">Email *</Label>
-                    <Input
-                      id="add-email"
-                      type="email"
-                      placeholder="user@example.com"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="add-password">Password *</Label>
-                    <div className="relative">
+                <div className="grid grid-cols-2 gap-6 py-4">
+                  {/* Left Column - User Details */}
+                  <div className="space-y-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="add-email">Email *</Label>
                       <Input
-                        id="add-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="pr-10"
+                        id="add-email"
+                        type="email"
+                        placeholder="user@example.com"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="add-password">Password *</Label>
+                      <div className="relative">
+                        <Input
+                          id="add-password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={formData.password}
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="add-name">Name *</Label>
+                      <Input
+                        id="add-name"
+                        placeholder="John Doe"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="add-phone">Phone</Label>
+                      <Input
+                        id="add-phone"
+                        placeholder="+1234567890"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      />
                     </div>
                   </div>
+
+                  {/* Right Column - Role Selection */}
                   <div className="grid gap-2">
-                    <Label htmlFor="add-name">Name *</Label>
-                    <Input
-                      id="add-name"
-                      placeholder="John Doe"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="add-phone">Phone</Label>
-                    <Input
-                      id="add-phone"
-                      placeholder="+1234567890"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="add-role">Role *</Label>
-                    <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value as AppRole })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.values(APP_ROLES).map((role) => (
-                          <SelectItem key={role} value={role}>
-                            {formatRole(role)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>Role *</Label>
+                    <div className="border border-gray-200 rounded-md p-4 space-y-3 max-h-[400px] overflow-y-auto">
+                      {/* Booking */}
+                      <div>
+                        <div className="text-xs font-semibold text-gray-500 mb-2">Booking</div>
+                        <div className="space-y-2 ml-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="role"
+                              value={APP_ROLES.CLIENT}
+                              checked={formData.role === APP_ROLES.CLIENT}
+                              onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm">Client</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="role"
+                              value={APP_ROLES.RECEPTIONIST}
+                              checked={formData.role === APP_ROLES.RECEPTIONIST}
+                              onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm">Receptionist</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Point of Sale */}
+                      <div className="pt-3 border-t border-gray-200">
+                        <div className="text-xs font-semibold text-gray-500 mb-2">Point of Sale</div>
+                        <div className="space-y-2 ml-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="role"
+                              value={APP_ROLES.RECEPTIONIST}
+                              checked={formData.role === APP_ROLES.RECEPTIONIST}
+                              onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm">Receptionist</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="role"
+                              value={APP_ROLES.MANAGER}
+                              checked={formData.role === APP_ROLES.MANAGER}
+                              onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm">Manager</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Inventory */}
+                      <div className="pt-3 border-t border-gray-200">
+                        <div className="text-xs font-semibold text-gray-500 mb-2">Inventory</div>
+                        <div className="space-y-2 ml-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="role"
+                              value={APP_ROLES.INVENTORY_CONTROLLER}
+                              checked={formData.role === APP_ROLES.INVENTORY_CONTROLLER}
+                              onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm">Inventory Controller</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="role"
+                              value={APP_ROLES.KITCHEN_STAFF}
+                              checked={formData.role === APP_ROLES.KITCHEN_STAFF}
+                              onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm">Kitchen Staff</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="role"
+                              value={APP_ROLES.PURCHASING_OFFICER}
+                              checked={formData.role === APP_ROLES.PURCHASING_OFFICER}
+                              onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm">Purchasing Officer</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Reports */}
+                      <div className="pt-3 border-t border-gray-200">
+                        <div className="text-xs font-semibold text-gray-500 mb-2">Reports</div>
+                        <div className="space-y-2 ml-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="role"
+                              value={APP_ROLES.ADMIN}
+                              checked={formData.role === APP_ROLES.ADMIN}
+                              onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm">Admin</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <DialogFooter>
@@ -423,49 +533,159 @@ export default function UsersPage() {
 
       {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>Update user information and role</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-email">Email</Label>
-              <Input id="edit-email" value={formData.email} disabled className="bg-gray-100" />
-              <p className="text-xs text-gray-500">Email cannot be changed</p>
+          <div className="grid grid-cols-2 gap-6 py-4">
+            {/* Left Column - User Details */}
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input id="edit-email" value={formData.email} disabled className="bg-gray-100" />
+                <p className="text-xs text-gray-500">Email cannot be changed</p>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">Name</Label>
+                <Input
+                  id="edit-name"
+                  placeholder="John Doe"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-phone">Phone</Label>
+                <Input
+                  id="edit-phone"
+                  placeholder="+1234567890"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </div>
             </div>
+
+            {/* Right Column - Role Selection */}
             <div className="grid gap-2">
-              <Label htmlFor="edit-name">Name</Label>
-              <Input
-                id="edit-name"
-                placeholder="John Doe"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-phone">Phone</Label>
-              <Input
-                id="edit-phone"
-                placeholder="+1234567890"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-role">Role</Label>
-              <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value as AppRole })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(APP_ROLES).map((role) => (
-                    <SelectItem key={role} value={role}>
-                      {formatRole(role)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Role</Label>
+              <div className="border border-gray-200 rounded-md p-4 space-y-3 max-h-[400px] overflow-y-auto">
+                {/* Booking */}
+                <div>
+                  <div className="text-xs font-semibold text-gray-500 mb-2">Booking</div>
+                  <div className="space-y-2 ml-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="edit-role"
+                        value={APP_ROLES.CLIENT}
+                        checked={formData.role === APP_ROLES.CLIENT}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Client</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="edit-role"
+                        value={APP_ROLES.RECEPTIONIST}
+                        checked={formData.role === APP_ROLES.RECEPTIONIST}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Receptionist</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Point of Sale */}
+                <div className="pt-3 border-t border-gray-200">
+                  <div className="text-xs font-semibold text-gray-500 mb-2">Point of Sale</div>
+                  <div className="space-y-2 ml-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="edit-role"
+                        value={APP_ROLES.RECEPTIONIST}
+                        checked={formData.role === APP_ROLES.RECEPTIONIST}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Receptionist</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="edit-role"
+                        value={APP_ROLES.MANAGER}
+                        checked={formData.role === APP_ROLES.MANAGER}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Manager</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Inventory */}
+                <div className="pt-3 border-t border-gray-200">
+                  <div className="text-xs font-semibold text-gray-500 mb-2">Inventory</div>
+                  <div className="space-y-2 ml-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="edit-role"
+                        value={APP_ROLES.INVENTORY_CONTROLLER}
+                        checked={formData.role === APP_ROLES.INVENTORY_CONTROLLER}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Inventory Controller</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="edit-role"
+                        value={APP_ROLES.KITCHEN_STAFF}
+                        checked={formData.role === APP_ROLES.KITCHEN_STAFF}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Kitchen Staff</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="edit-role"
+                        value={APP_ROLES.PURCHASING_OFFICER}
+                        checked={formData.role === APP_ROLES.PURCHASING_OFFICER}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Purchasing Officer</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Reports */}
+                <div className="pt-3 border-t border-gray-200">
+                  <div className="text-xs font-semibold text-gray-500 mb-2">Reports</div>
+                  <div className="space-y-2 ml-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="edit-role"
+                        value={APP_ROLES.ADMIN}
+                        checked={formData.role === APP_ROLES.ADMIN}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value as AppRole })}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Admin</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>

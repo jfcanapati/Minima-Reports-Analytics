@@ -5,18 +5,22 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { ChartCard } from "@/components/reports/ChartCard";
 import { KPICard } from "@/components/reports/KPICard";
 import { DateRangeFilter } from "@/components/reports/DateRangeFilter";
-import { Package, TrendingDown, AlertTriangle, Wallet, ShoppingCart, TrendingUp } from "lucide-react";
+import { Package, TrendingDown, AlertTriangle, Wallet, ShoppingCart, TrendingUp, Eye } from "lucide-react";
 import { formatCurrency, formatCurrencyShort } from "@/lib/localization";
 import { useToast } from "@/hooks/useToast";
 import { useInventory, useInventoryStats, usePurchaseOrders, useMenuItems } from "@/hooks/useInventory";
 import { exportKPIsToPDF, exportKPIsToExcel } from "@/lib/exportUtils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Badge } from "@/components/ui/Badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
+import { Button } from "@/components/ui/Button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, TooltipProps } from "recharts";
 
 export default function InventoryPage() {
   const [startDate, setStartDate] = useState<Date | undefined>(new Date(new Date().setDate(new Date().getDate() - 30)));
   const [endDate, setEndDate] = useState<Date | undefined>(new Date());
+  const [selectedPO, setSelectedPO] = useState<any>(null);
+  const [isPODialogOpen, setIsPODialogOpen] = useState(false);
 
   const { items, loading } = useInventory();
   const stats = useInventoryStats(items);
@@ -244,6 +248,11 @@ export default function InventoryPage() {
 
   // Recent 5 purchase orders (filtered)
   const recentPOs = filteredPurchaseOrders.slice(0, 5);
+
+  const handleViewPO = (po: any) => {
+    setSelectedPO(po);
+    setIsPODialogOpen(true);
+  };
 
   const handleExportPDF = () => {
     const kpis = [
@@ -602,7 +611,11 @@ export default function InventoryPage() {
                   cancelled: "destructive",
                 };
                 return (
-                  <div key={po.id} className="p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <div 
+                    key={po.id} 
+                    onClick={() => handleViewPO(po)}
+                    className="p-4 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex-1">
                         <span className="text-sm font-medium text-black">{po.orderNumber}</span>
@@ -672,6 +685,103 @@ export default function InventoryPage() {
           </div>
         </ChartCard>
       </div>
+
+      {/* Purchase Order Details Modal */}
+      <Dialog open={isPODialogOpen} onOpenChange={setIsPODialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Purchase Order Details</DialogTitle>
+          </DialogHeader>
+          {selectedPO && (
+            <div className="space-y-4">
+              {/* Header Info */}
+              <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-200">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Order Number</p>
+                  <p className="text-sm font-semibold text-black">{selectedPO.orderNumber}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Status</p>
+                  <Badge variant={
+                    selectedPO.status === "pending" ? "warning" :
+                    selectedPO.status === "delivered" ? "success" :
+                    selectedPO.status === "cancelled" ? "destructive" : "outline"
+                  }>
+                    {selectedPO.status.charAt(0).toUpperCase() + selectedPO.status.slice(1)}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Supplier</p>
+                  <p className="text-sm font-medium text-black">{selectedPO.supplier.name}</p>
+                  {selectedPO.supplier.contact && (
+                    <p className="text-xs text-gray-500">{selectedPO.supplier.contact}</p>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Priority</p>
+                  <p className="text-sm font-medium text-black capitalize">{selectedPO.priority}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Expected Delivery</p>
+                  <p className="text-sm font-medium text-black">
+                    {new Date(selectedPO.expectedDelivery).toLocaleDateString("en-US", { 
+                      month: "long", 
+                      day: "numeric", 
+                      year: "numeric" 
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Created Date</p>
+                  <p className="text-sm font-medium text-black">
+                    {new Date(selectedPO.createdAt).toLocaleDateString("en-US", { 
+                      month: "long", 
+                      day: "numeric", 
+                      year: "numeric" 
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Items List */}
+              <div>
+                <p className="text-sm font-semibold text-black mb-3">Order Items ({selectedPO.items.length})</p>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {selectedPO.items.map((item: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-black">{item.itemName}</p>
+                        <p className="text-xs text-gray-500">
+                          {item.quantity} {item.itemUnit} × {formatCurrency(item.unitCost)}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold text-black">
+                        {formatCurrency(item.totalCost)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Total */}
+              <div className="pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-black">Total Amount</p>
+                  <p className="text-xl font-bold text-black">{formatCurrency(selectedPO.totalAmount)}</p>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {selectedPO.notes && (
+                <div className="pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 mb-2">Notes</p>
+                  <p className="text-sm text-gray-700">{selectedPO.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

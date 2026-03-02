@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ChartCard } from "@/components/reports/ChartCard";
 import { Button } from "@/components/ui/Button";
@@ -16,6 +16,7 @@ import {
   ReportContent,
 } from "@/hooks/useEmailReports";
 import { useAuth } from "@/hooks/useAuth";
+import { useUsers } from "@/hooks/useUsers";
 import { Mail, Plus, Trash2, Send, Clock, Calendar, ToggleLeft, ToggleRight, FileText } from "lucide-react";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -39,6 +40,12 @@ export default function EmailReportsPage() {
   const [sendNowEmail, setSendNowEmail] = useState("");
   const [sendNowContent, setSendNowContent] = useState<ReportContent[]>(["room_revenue", "occupancy"]);
   
+  // Autocomplete states
+  const [showSendNowSuggestions, setShowSendNowSuggestions] = useState(false);
+  const [showScheduleSuggestions, setShowScheduleSuggestions] = useState(false);
+  const sendNowInputRef = useRef<HTMLInputElement>(null);
+  const scheduleInputRef = useRef<HTMLInputElement>(null);
+  
   // Date range state
   const today = new Date();
   const lastWeek = new Date(today);
@@ -47,11 +54,36 @@ export default function EmailReportsPage() {
   const [endDate, setEndDate] = useState(today.toISOString().split('T')[0]);
 
   const { user } = useAuth();
+  const { users } = useUsers();
   const { data: schedules, isLoading } = useScheduledReports();
   const createSchedule = useCreateScheduledReport();
   const deleteSchedule = useDeleteScheduledReport();
   const updateSchedule = useUpdateScheduledReport();
   const sendNow = useSendReportNow();
+
+  // Filter users based on input
+  const getFilteredUsers = (searchTerm: string) => {
+    if (!searchTerm) return users.filter(u => u.status === 'active');
+    const term = searchTerm.toLowerCase();
+    return users.filter(u => 
+      u.status === 'active' && 
+      (u.email.toLowerCase().includes(term) || u.name.toLowerCase().includes(term))
+    );
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sendNowInputRef.current && !sendNowInputRef.current.contains(event.target as Node)) {
+        setShowSendNowSuggestions(false);
+      }
+      if (scheduleInputRef.current && !scheduleInputRef.current.contains(event.target as Node)) {
+        setShowScheduleSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleToggleReportContent = (content: ReportContent) => {
     setSendNowContent(prev => {
@@ -127,15 +159,34 @@ export default function EmailReportsPage() {
         <div className="space-y-4">
           {/* Email and Date Range Row */}
           <div className="flex flex-wrap items-end gap-4">
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-[200px] relative" ref={sendNowInputRef}>
               <Label>Email Address</Label>
               <Input
                 type="email"
                 value={sendNowEmail}
                 onChange={(e) => setSendNowEmail(e.target.value)}
-                placeholder="recipient@example.com"
+                onFocus={() => setShowSendNowSuggestions(true)}
+                placeholder="Type or select email address"
                 className="mt-1"
               />
+              {showSendNowSuggestions && getFilteredUsers(sendNowEmail).length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                  {getFilteredUsers(sendNowEmail).map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => {
+                        setSendNowEmail(user.email);
+                        setShowSendNowSuggestions(false);
+                      }}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                    >
+                      <div className="font-medium text-sm text-black">{user.name}</div>
+                      <div className="text-xs text-gray-500">{user.email}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="w-40">
               <Label>Start Date</Label>
@@ -216,15 +267,34 @@ export default function EmailReportsPage() {
           <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-heading font-semibold text-black mb-4">Create New Schedule</h3>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 relative" ref={scheduleInputRef}>
                 <Label>Email Address</Label>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="recipient@example.com"
+                  onFocus={() => setShowScheduleSuggestions(true)}
+                  placeholder="Type or select email address"
                   className="mt-1"
                 />
+                {showScheduleSuggestions && getFilteredUsers(email).length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {getFilteredUsers(email).map((user) => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        onClick={() => {
+                          setEmail(user.email);
+                          setShowScheduleSuggestions(false);
+                        }}
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                      >
+                        <div className="font-medium text-sm text-black">{user.name}</div>
+                        <div className="text-xs text-gray-500">{user.email}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <Label>Frequency</Label>

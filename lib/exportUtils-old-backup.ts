@@ -112,12 +112,12 @@ export const exportToPDF = (
       lineWidth: 0.2,
     },
     headStyles: {
-      fillColor: COLORS.lightGray,
+      fillColor: COLORS.white,
       textColor: COLORS.black,
       fontStyle: "bold",
       fontSize: 9,
-      lineWidth: 0.2,
-      lineColor: COLORS.lightGray,
+      lineWidth: 0.5,
+      lineColor: COLORS.black,
     },
     bodyStyles: {
       fillColor: COLORS.white,
@@ -171,11 +171,11 @@ export const exportKPIsToPDF = (
       lineWidth: 0.2,
     },
     headStyles: {
-      fillColor: COLORS.lightGray,
+      fillColor: COLORS.white,
       textColor: COLORS.black,
       fontStyle: "bold",
-      lineWidth: 0.2,
-      lineColor: COLORS.lightGray,
+      lineWidth: 0.5,
+      lineColor: COLORS.black,
     },
     bodyStyles: {
       fillColor: COLORS.white,
@@ -222,11 +222,11 @@ export const exportKPIsToPDF = (
         lineWidth: 0.2,
       },
       headStyles: {
-        fillColor: COLORS.lightGray,
+        fillColor: COLORS.white,
         textColor: COLORS.black,
         fontStyle: "bold",
-        lineWidth: 0.2,
-        lineColor: COLORS.lightGray,
+        lineWidth: 0.5,
+        lineColor: COLORS.black,
       },
       bodyStyles: {
         fillColor: COLORS.white,

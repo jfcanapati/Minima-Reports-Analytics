@@ -80,7 +80,7 @@ export default function OccupancyPage() {
       { key: "occupied", label: "Occupied" }, 
       { key: "total", label: "Total" }, 
       { key: "capacity", label: "Capacity" },
-      { key: "rate", label: "Rate (₱)" }, 
+      { key: "rate", label: "Rate (PHP)" }, 
       { key: "occupancyRate", label: "Occupancy %" }
     ], { title: "Occupancy Report", subtitle: "Room Occupancy Analysis", dateRange: { start: startDate, end: endDate } });
     toast({ title: "Export Successful", description: "Occupancy report exported as PDF" });
