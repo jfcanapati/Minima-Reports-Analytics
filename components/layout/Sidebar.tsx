@@ -35,7 +35,6 @@ const navigation = [
   {
     category: "Administration",
     items: [
-      { name: "Audit Log", href: "/audit", icon: FileText },
       { name: "Users", href: "/users", icon: Users },
       { name: "Settings", href: "/settings", icon: Settings },
     ],
