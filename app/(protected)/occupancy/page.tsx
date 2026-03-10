@@ -7,12 +7,13 @@ import { KPICard } from "@/components/reports/KPICard";
 import { DateRangeFilter } from "@/components/reports/DateRangeFilter";
 import { DataTable } from "@/components/reports/DataTable";
 import { exportToPDF, exportKPIsToPDF } from "@/lib/exportUtils";
-import { BedDouble, Users, CalendarCheck, TrendingUp, UserCheck, Globe } from "lucide-react";
+import { BedDouble, Users, CalendarCheck, TrendingUp, UserCheck, Globe, ChevronDown, ChevronUp } from "lucide-react";
 import { formatCurrency } from "@/lib/localization";
 import { useToast } from "@/hooks/useToast";
-import { useRoomTypes, useBookings, useDailyOccupancy, useMonthlyOccupancy, useMonthlyRevenue, useBookingStats, usePeriodComparison, calculateKPIs } from "@/hooks/useReportData";
+import { useRoomTypes, useBookings, useDailyOccupancy, useMonthlyOccupancy, useMonthlyRevenue, useBookingStats, usePeriodComparison, calculateKPIs, useRoomsGroupedByType } from "@/hooks/useReportData";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Badge } from "@/components/ui/Badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 
 const COLORS = ["#111111", "#8A8A8A", "#4B4B4B", "#D1D1D1"];
@@ -20,8 +21,11 @@ const COLORS = ["#111111", "#8A8A8A", "#4B4B4B", "#D1D1D1"];
 export default function OccupancyPage() {
   const [startDate, setStartDate] = useState<Date | undefined>(new Date(new Date().setDate(new Date().getDate() - 30)));
   const [endDate, setEndDate] = useState<Date | undefined>(new Date());
+  const [showCapacityDialog, setShowCapacityDialog] = useState(false);
+  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set());
 
   const { data: roomTypes = [], isLoading: roomTypesLoading } = useRoomTypes(endDate);
+  const { data: roomsGrouped = {}, isLoading: roomsGroupedLoading } = useRoomsGroupedByType(endDate);
   const { data: bookings = [], isLoading: bookingsLoading } = useBookings(startDate, endDate);
   const { data: dailyOccupancy = [], isLoading: dailyLoading } = useDailyOccupancy(startDate, endDate);
   const { data: monthlyOccupancy = [], isLoading: monthlyLoading } = useMonthlyOccupancy(startDate, endDate);
@@ -30,13 +34,13 @@ export default function OccupancyPage() {
   const { data: comparison } = usePeriodComparison(startDate, endDate);
   const { toast } = useToast();
 
-  const isLoading = roomTypesLoading || dailyLoading || monthlyLoading || revenueLoading || bookingsLoading || statsLoading;
+  const isLoading = roomTypesLoading || roomsGroupedLoading || dailyLoading || monthlyLoading || revenueLoading || bookingsLoading || statsLoading;
   const kpiData = calculateKPIs(roomTypes, monthlyRevenue);
 
   const totalRooms = roomTypes.reduce((acc, room) => acc + room.total, 0);
   const occupiedRooms = roomTypes.reduce((acc, room) => acc + room.occupied, 0);
   const availableRooms = totalRooms - occupiedRooms;
-  const totalCapacity = roomTypes.reduce((acc, room) => acc + (room.capacity * room.total), 0);
+  const totalCapacity = roomTypes.reduce((acc, room) => acc + room.totalCapacity, 0);
 
   const pieData = [{ name: "Occupied", value: occupiedRooms }, { name: "Available", value: availableRooms }];
   const bookingTypeData = [
@@ -50,6 +54,16 @@ export default function OccupancyPage() {
     { label: "Rooms Available", value: availableRooms },
     { label: "Total Rooms", value: totalRooms },
   ];
+
+  const toggleRoomType = (type: string) => {
+    const newExpanded = new Set(expandedTypes);
+    if (newExpanded.has(type)) {
+      newExpanded.delete(type);
+    } else {
+      newExpanded.add(type);
+    }
+    setExpandedTypes(newExpanded);
+  };
 
   const bookingColumns = [
     { key: "id", label: "Booking ID" },
@@ -111,9 +125,96 @@ export default function OccupancyPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <KPICard title="Current Occupancy" value={`${comparison?.current.occupancyRate || kpiData.occupancyRate}%`} change={comparison?.changes.occupancyRate} icon={<BedDouble className="h-6 w-6" />} variant="primary" />
         <KPICard title="Rooms Occupied" value={`${occupiedRooms} / ${totalRooms}`} icon={<Users className="h-6 w-6" />} />
-        <KPICard title="Total Capacity" value={`${totalCapacity} guests`} icon={<CalendarCheck className="h-6 w-6" />} variant="success" />
+        <KPICard 
+          title="Total Capacity" 
+          value={`${totalCapacity} guests`} 
+          icon={<CalendarCheck className="h-6 w-6" />} 
+          variant="success"
+          onClick={() => setShowCapacityDialog(true)}
+          className="cursor-pointer hover:shadow-lg transition-shadow"
+        />
         <KPICard title="Total Bookings" value={comparison?.current.bookings || bookingStats?.total || 0} change={comparison?.changes.bookings} icon={<TrendingUp className="h-6 w-6" />} />
       </div>
+
+      <Dialog open={showCapacityDialog} onOpenChange={setShowCapacityDialog}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Guest Capacity Breakdown</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-2 mt-4">
+            {roomTypes.map((roomType) => {
+              const isExpanded = expandedTypes.has(roomType.type);
+              const rooms = roomsGrouped[roomType.type] || [];
+              
+              return (
+                <div key={roomType.type} className="border rounded-md overflow-hidden">
+                  <button
+                    onClick={() => toggleRoomType(roomType.type)}
+                    className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-black text-white text-sm font-semibold">
+                        {roomType.total}
+                      </div>
+                      <div className="text-left">
+                        <h3 className="font-semibold text-base">{roomType.type}</h3>
+                        <p className="text-xs text-gray-500">{rooms.length} rooms</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-primary">{roomType.totalCapacity}</div>
+                        <div className="text-xs text-gray-500">guests</div>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                      )}
+                    </div>
+                  </button>
+                  
+                  {isExpanded && (
+                    <div className="px-4 py-3 bg-white">
+                      <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
+                        {rooms.map((room) => (
+                          <div
+                            key={room.roomNumber}
+                            className="flex items-center justify-between px-2 py-2 border rounded hover:border-gray-400 transition-colors text-sm"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <BedDouble className="h-3 w-3 text-gray-400" />
+                              <span className="font-medium text-sm">#{room.roomNumber}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Users className="h-3 w-3 text-gray-400" />
+                              <span className="text-xs text-gray-600">{room.capacity}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 pt-4 border-t-2 border-gray-200">
+            <div className="flex items-center justify-between px-4 py-3 bg-black text-white rounded-md">
+              <div>
+                <div className="text-xs opacity-80">Grand Total</div>
+                <div className="text-lg font-bold">{totalRooms} Rooms</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs opacity-80">Maximum Capacity</div>
+                <div className="text-2xl font-bold">{totalCapacity} Guests</div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <ChartCard title="Daily Occupancy" description="Room occupancy for the current week">

@@ -10,6 +10,7 @@ export interface RoomType {
   total: number; 
   rate: number; 
   capacity: number;
+  totalCapacity: number;
   amenities: string[];
 }
 
@@ -29,7 +30,15 @@ export interface Booking {
 export interface InventoryItem { category: string; used: number; cost: number; wastage: number; }
 export interface DailyOccupancy { date: string; occupied: number; available: number; rate: number; }
 export interface MonthlyOccupancy { month: string; rate: number; }
-export interface MonthlyRevenue { month: string; rooms: number; restaurant: number; spa: number; other: number; }
+export interface MonthlyRevenue { 
+  month: string; 
+  rooms: number; 
+  foodBeverage: number; 
+  spa: number; 
+  transportation: number;
+  guestServices: number;
+  other: number; 
+}
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -64,7 +73,7 @@ export function useRoomTypes(targetDate?: Date) {
       );
 
       // Group rooms by type
-      const roomTypeMap: Record<string, { total: number; occupied: number; rate: number; capacity: number; amenities: string[] }> = {};
+      const roomTypeMap: Record<string, { total: number; occupied: number; rate: number; capacity: number; totalCapacity: number; amenities: string[] }> = {};
 
       Object.values(rooms).forEach((room: any) => {
         const type = room.type;
@@ -74,10 +83,12 @@ export function useRoomTypes(targetDate?: Date) {
             occupied: 0, 
             rate: room.pricePerNight,
             capacity: room.capacity || 2,
+            totalCapacity: 0,
             amenities: room.amenities || []
           };
         }
         roomTypeMap[type].total += 1;
+        roomTypeMap[type].totalCapacity += (room.capacity || 2);
         if (room.capacity > roomTypeMap[type].capacity) {
           roomTypeMap[type].capacity = room.capacity;
         }
@@ -97,8 +108,46 @@ export function useRoomTypes(targetDate?: Date) {
         total: data.total,
         rate: data.rate,
         capacity: data.capacity,
+        totalCapacity: data.totalCapacity,
         amenities: data.amenities,
       }));
+    },
+  });
+}
+
+// Fetch individual rooms grouped by type
+export function useRoomsGroupedByType(targetDate?: Date) {
+  const dateStr = targetDate ? formatDateStr(targetDate) : formatDateStr(new Date());
+  
+  return useQuery({
+    queryKey: ["roomsGroupedByType", dateStr],
+    queryFn: async () => {
+      if (!database) return {};
+      const roomsSnapshot = await get(ref(database, "rooms"));
+
+      if (!roomsSnapshot.exists()) return {};
+
+      const rooms = roomsSnapshot.val();
+      const grouped: Record<string, Array<{ roomNumber: string; capacity: number; status: string }>> = {};
+
+      Object.values(rooms).forEach((room: any) => {
+        const type = room.type;
+        if (!grouped[type]) {
+          grouped[type] = [];
+        }
+        grouped[type].push({
+          roomNumber: room.roomNumber || "N/A",
+          capacity: room.capacity || 2,
+          status: room.status || "available"
+        });
+      });
+
+      // Sort rooms by room number within each type
+      Object.keys(grouped).forEach(type => {
+        grouped[type].sort((a, b) => a.roomNumber.localeCompare(b.roomNumber));
+      });
+
+      return grouped;
     },
   });
 }
@@ -301,22 +350,37 @@ export function useMonthlyRevenue(startDate?: Date, endDate?: Date) {
     queryKey: ["monthlyRevenue", formatDateStr(start), formatDateStr(end)],
     queryFn: async (): Promise<MonthlyRevenue[]> => {
       if (!database) return [];
-      const [bookingsSnapshot, posSnapshot, posItemsSnapshot, productsSnapshot] = await Promise.all([
+      const [bookingsSnapshot, posSnapshot, posItemsSnapshot, productsSnapshot, menuSnapshot] = await Promise.all([
         get(ref(database, "bookings")),
         get(ref(database, "pos_transactions")),
         get(ref(database, "pos_transaction_items")),
-        get(ref(database, "pos_products"))
+        get(ref(database, "pos_products")),
+        get(ref(database, "menu"))
       ]);
 
       const bookings = bookingsSnapshot.exists() ? Object.values(bookingsSnapshot.val()) : [];
       const posTransactions = posSnapshot.exists() ? posSnapshot.val() : {};
       const posItems = posItemsSnapshot.exists() ? Object.values(posItemsSnapshot.val()) : [];
       const products = productsSnapshot.exists() ? productsSnapshot.val() : {};
+      const menu = menuSnapshot.exists() ? menuSnapshot.val() : {};
 
-      // Build product category map
-      const productCategoryMap: Record<string, string> = {};
+      // Build product info map (category and serviceType)
+      const productInfoMap: Record<string, { category: string; serviceType?: string; isFood?: boolean }> = {};
+      
+      // Add POS products (services)
       Object.entries(products).forEach(([id, p]: [string, any]) => {
-        productCategoryMap[id] = p.category_id;
+        productInfoMap[id] = {
+          category: p.category_id,
+          serviceType: p.serviceType
+        };
+      });
+      
+      // Add menu items (food)
+      Object.entries(menu).forEach(([id, m]: [string, any]) => {
+        productInfoMap[id] = {
+          category: "foods",
+          isFood: true
+        };
       });
 
       // Get months between start and end
@@ -329,19 +393,22 @@ export function useMonthlyRevenue(startDate?: Date, endDate?: Date) {
         const month = currentDate.getMonth();
 
         let roomsRevenue = 0;
-        let foodsRevenue = 0;
-        let servicesRevenue = 0;
+        let foodBeverageRevenue = 0;
+        let spaRevenue = 0;
+        let transportationRevenue = 0;
+        let guestServicesRevenue = 0;
+        let otherRevenue = 0;
 
         // Sum booking revenue for this month
         bookings.forEach((b: any) => {
-          if (b.status !== "paid" && b.status !== "completed") return;
+          if (b.status !== "paid" && b.status !== "completed" && b.status !== "checked-out") return;
           const bookingDate = new Date(b.createdAt || b.checkIn);
           if (bookingDate.getFullYear() === year && bookingDate.getMonth() === month) {
             roomsRevenue += b.totalPrice || 0;
           }
         });
 
-        // Sum POS revenue by category for this month
+        // Sum POS revenue by serviceType for this month
         Object.entries(posTransactions).forEach(([transId, t]: [string, any]) => {
           if (t.status !== "completed") return;
           const transDate = new Date(t.created_at);
@@ -351,24 +418,58 @@ export function useMonthlyRevenue(startDate?: Date, endDate?: Date) {
           
           if (transItems.length > 0) {
             transItems.forEach((item: any) => {
-              const category = productCategoryMap[item.product_id];
-              if (category === "foods") {
-                foodsRevenue += item.total_price || 0;
+              const productInfo = productInfoMap[item.product_id];
+              const itemRevenue = item.total_price || 0;
+              
+              if (!productInfo) {
+                otherRevenue += itemRevenue;
+                return;
+              }
+
+              // Categorize by category_id first, then by product_id patterns
+              if (productInfo.category === "foods") {
+                foodBeverageRevenue += itemRevenue;
+              } else if (productInfo.serviceType === "spa") {
+                spaRevenue += itemRevenue;
+              } else if (item.product_id.includes("airport") || 
+                         item.product_id.includes("car_rental") ||
+                         item.product_id === "svc_airport_pickup" ||
+                         item.product_id === "svc_airport_dropoff" ||
+                         item.product_id === "svc_car_rental") {
+                transportationRevenue += itemRevenue;
+              } else if (item.product_id.includes("babysitting") ||
+                         item.product_id.includes("laundry") ||
+                         item.product_id.includes("dry_cleaning") ||
+                         item.product_id.includes("ironing") ||
+                         item.product_id === "svc_babysitting" ||
+                         item.product_id === "svc_laundry" ||
+                         item.product_id === "svc_dry_cleaning" ||
+                         item.product_id === "svc_ironing") {
+                guestServicesRevenue += itemRevenue;
+              } else if (productInfo.serviceType === "room" ||
+                         item.product_id.includes("extra_bed") ||
+                         item.product_id.includes("late_checkout") ||
+                         item.product_id.includes("early_checkin")) {
+                otherRevenue += itemRevenue;
               } else {
-                servicesRevenue += item.total_price || 0;
+                // All other services go to other
+                otherRevenue += itemRevenue;
               }
             });
           } else {
-            servicesRevenue += t.subtotal || 0;
+            // If no items, put in other
+            otherRevenue += t.subtotal || 0;
           }
         });
 
         months.push({
           month: MONTH_NAMES[month],
           rooms: roomsRevenue,
-          restaurant: foodsRevenue,
-          spa: servicesRevenue,
-          other: 0,
+          foodBeverage: foodBeverageRevenue,
+          spa: spaRevenue,
+          transportation: transportationRevenue,
+          guestServices: guestServicesRevenue,
+          other: otherRevenue,
         });
         
         currentDate.setMonth(currentDate.getMonth() + 1);
@@ -899,8 +1000,8 @@ export function calculateKPIs(roomTypes: RoomType[], monthlyRevenue: MonthlyReve
   const totalRoomRevenue = roomTypes.reduce((acc, r) => acc + r.occupied * r.rate, 0);
   const adr = occupiedRooms > 0 ? totalRoomRevenue / occupiedRooms : 0;
   const revpar = totalRooms > 0 ? totalRoomRevenue / totalRooms : 0;
-  const totalRevenue = monthlyRevenue.reduce((acc, r) => acc + r.rooms + r.restaurant + r.spa + r.other, 0);
-  const totalCapacity = roomTypes.reduce((acc, r) => acc + (r.capacity * r.total), 0);
+  const totalRevenue = monthlyRevenue.reduce((acc, r) => acc + r.rooms + r.foodBeverage + r.spa + r.transportation + r.guestServices + r.other, 0);
+  const totalCapacity = roomTypes.reduce((acc, r) => acc + r.totalCapacity, 0);
 
   return {
     occupancyRate: Math.round(occupancyRate * 10) / 10,
@@ -919,22 +1020,23 @@ export function calculateRevenueByCatagory(monthlyRevenue: MonthlyRevenue[]) {
   const totals = monthlyRevenue.reduce(
     (acc, r) => ({
       rooms: acc.rooms + r.rooms,
-      foods: acc.foods + r.restaurant,
-      services: acc.services + r.spa,
+      foodBeverage: acc.foodBeverage + r.foodBeverage,
+      spa: acc.spa + r.spa,
+      transportation: acc.transportation + r.transportation,
+      guestServices: acc.guestServices + r.guestServices,
       other: acc.other + r.other,
     }),
-    { rooms: 0, foods: 0, services: 0, other: 0 }
+    { rooms: 0, foodBeverage: 0, spa: 0, transportation: 0, guestServices: 0, other: 0 }
   );
-  
-  // Filter out categories with zero value
-  const categories = [
-    { name: "Rooms", value: totals.rooms },
-    { name: "Foods", value: totals.foods },
-    { name: "Services", value: totals.services },
-    { name: "Other", value: totals.other },
-  ];
-  
-  return categories.filter(c => c.value > 0);
+
+  return [
+    { name: "Room Revenue", value: totals.rooms },
+    { name: "Food & Beverage", value: totals.foodBeverage },
+    { name: "Spa & Wellness", value: totals.spa },
+    { name: "Transportation", value: totals.transportation },
+    { name: "Guest Services", value: totals.guestServices },
+    { name: "Other Services", value: totals.other },
+  ].filter(item => item.value > 0); // Only show categories with revenue
 }
 
 

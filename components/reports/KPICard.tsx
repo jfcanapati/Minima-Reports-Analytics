@@ -11,14 +11,23 @@ interface KPICardProps {
   subtitle?: string;
   icon: ReactNode;
   variant?: "default" | "primary" | "success" | "warning";
+  onClick?: () => void;
+  className?: string;
 }
 
-export function KPICard({ title, value, change, subtitle, icon, variant = "default" }: KPICardProps) {
+export function KPICard({ title, value, change, subtitle, icon, variant = "default", onClick, className }: KPICardProps) {
   const isPositive = change && change > 0;
   const isNegative = change && change < 0;
 
   return (
-    <div className={cn("rounded-md border border-gray-300 bg-white p-6 transition-shadow duration-200 hover:shadow-md")}>
+    <div 
+      className={cn(
+        "rounded-md border border-gray-300 bg-white p-6 transition-shadow duration-200 hover:shadow-md",
+        onClick && "cursor-pointer",
+        className
+      )}
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <p className="text-sm text-gray-500">{title}</p>

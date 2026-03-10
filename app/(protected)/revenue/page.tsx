@@ -29,9 +29,9 @@ import {
   TooltipProps 
 } from "recharts";
 
-const COLORS = ["#111111", "#4B4B4B", "#8A8A8A", "#D1D1D1", "#E5E5E5"];
-const ROOM_COLORS = ["#111111", "#2D2D2D", "#4B4B4B", "#6B6B6B", "#8A8A8A"];
-const SERVICE_COLORS = ["#4B4B4B", "#6B6B6B", "#8A8A8A", "#ABABAB", "#D1D1D1"];
+const COLORS = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#6b7280"];
+const ROOM_COLORS = ["#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#dbeafe"];
+const SERVICE_COLORS = ["#dc2626", "#ef4444", "#f87171", "#fca5a5", "#fecaca"];
 
 // Filter types for the chart
 type RevenueFilter = "all" | "rooms" | "services" | "total";
@@ -57,10 +57,12 @@ const RevenueTooltip = ({
   if (!data) return null;
 
   const rooms = data.rooms || 0;
-  const foods = data.foods || 0;
-  const services = data.services || 0;
+  const foodBeverage = data.foodBeverage || 0;
+  const spa = data.spa || 0;
+  const transportation = data.transportation || 0;
+  const guestServices = data.guestServices || 0;
   const other = data.other || 0;
-  const servicesTotal = foods + services + other;
+  const servicesTotal = foodBeverage + spa + transportation + guestServices + other;
   const total = data.total || (rooms + servicesTotal);
 
   // Show filtered content based on active filter
@@ -125,21 +127,35 @@ const RevenueTooltip = ({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#4B4B4B]" />
-                <span className="text-xs text-gray-600">Foods & Beverages</span>
+                <div className="w-2 h-2 rounded-full bg-[#dc2626]" />
+                <span className="text-xs text-gray-600">Food & Beverage</span>
               </div>
-              <span className="text-xs font-medium text-gray-700">{formatCurrency(foods)}</span>
+              <span className="text-xs font-medium text-gray-700">{formatCurrency(foodBeverage)}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#8A8A8A]" />
-                <span className="text-xs text-gray-600">Spa & Services</span>
+                <div className="w-2 h-2 rounded-full bg-[#059669]" />
+                <span className="text-xs text-gray-600">Spa & Wellness</span>
               </div>
-              <span className="text-xs font-medium text-gray-700">{formatCurrency(services)}</span>
+              <span className="text-xs font-medium text-gray-700">{formatCurrency(spa)}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#D1D1D1]" />
+                <div className="w-2 h-2 rounded-full bg-[#d97706]" />
+                <span className="text-xs text-gray-600">Transportation</span>
+              </div>
+              <span className="text-xs font-medium text-gray-700">{formatCurrency(transportation)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#7c3aed]" />
+                <span className="text-xs text-gray-600">Guest Services</span>
+              </div>
+              <span className="text-xs font-medium text-gray-700">{formatCurrency(guestServices)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#6b7280]" />
                 <span className="text-xs text-gray-600">Other Services</span>
               </div>
               <span className="text-xs font-medium text-gray-700">{formatCurrency(other)}</span>
@@ -228,12 +244,20 @@ const RevenueTooltip = ({
             </div>
             <div className="ml-4 mt-1 space-y-0.5">
               <div className="flex justify-between text-xs text-gray-500">
-                <span>• Foods</span>
-                <span>{formatCurrency(foods)}</span>
+                <span>• Food & Beverage</span>
+                <span>{formatCurrency(foodBeverage)}</span>
               </div>
               <div className="flex justify-between text-xs text-gray-500">
-                <span>• Services</span>
-                <span>{formatCurrency(services)}</span>
+                <span>• Spa</span>
+                <span>{formatCurrency(spa)}</span>
+              </div>
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>• Transportation</span>
+                <span>{formatCurrency(transportation)}</span>
+              </div>
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>• Guest Services</span>
+                <span>{formatCurrency(guestServices)}</span>
               </div>
               <div className="flex justify-between text-xs text-gray-500">
                 <span>• Other</span>
@@ -286,12 +310,20 @@ const RevenueTooltip = ({
         </div>
         <div className="ml-5 text-xs text-gray-400 space-y-0.5">
           <div className="flex justify-between">
-            <span>• Foods</span>
-            <span>{formatCurrency(foods)}</span>
+            <span>• Food & Beverage</span>
+            <span>{formatCurrency(foodBeverage)}</span>
           </div>
           <div className="flex justify-between">
-            <span>• Services</span>
-            <span>{formatCurrency(services)}</span>
+            <span>• Spa</span>
+            <span>{formatCurrency(spa)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>• Transportation</span>
+            <span>{formatCurrency(transportation)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>• Guest Services</span>
+            <span>{formatCurrency(guestServices)}</span>
           </div>
           <div className="flex justify-between">
             <span>• Other</span>
@@ -337,10 +369,8 @@ export default function RevenuePage() {
   
   const revenueWithTotal = monthlyRevenue.map(item => ({ 
     ...item, 
-    foods: item.restaurant,
-    services: item.spa,
-    total: item.rooms + item.restaurant + item.spa + item.other,
-    servicesTotal: item.restaurant + item.spa + item.other,
+    total: item.rooms + item.foodBeverage + item.spa + item.transportation + item.guestServices + item.other,
+    servicesTotal: item.foodBeverage + item.spa + item.transportation + item.guestServices + item.other,
   }));
 
   const kpis = [
@@ -354,16 +384,20 @@ export default function RevenuePage() {
     const revenueExportData = monthlyRevenue.map(item => ({ 
       month: item.month, 
       rooms: item.rooms, 
-      foods: item.restaurant, 
-      services: item.spa, 
+      foodBeverage: item.foodBeverage, 
+      spa: item.spa, 
+      transportation: item.transportation,
+      guestServices: item.guestServices,
       other: item.other, 
-      total: item.rooms + item.restaurant + item.spa + item.other 
+      total: item.rooms + item.foodBeverage + item.spa + item.transportation + item.guestServices + item.other 
     }));
     exportToPDF(revenueExportData, [
       { key: "month", label: "Month" }, 
       { key: "rooms", label: "Rooms (₱)" }, 
-      { key: "foods", label: "Foods (₱)" }, 
-      { key: "services", label: "Services (₱)" }, 
+      { key: "foodBeverage", label: "F&B (₱)" }, 
+      { key: "spa", label: "Spa (₱)" }, 
+      { key: "transportation", label: "Transport (₱)" },
+      { key: "guestServices", label: "Guest Svc (₱)" },
       { key: "other", label: "Other (₱)" }, 
       { key: "total", label: "Total (₱)" }
     ], { title: "Revenue Report", subtitle: "Revenue Analysis by Category", dateRange: { start: startDate, end: endDate } });
@@ -374,10 +408,12 @@ export default function RevenuePage() {
     const revenueExportData = monthlyRevenue.map(item => ({ 
       month: item.month, 
       rooms: item.rooms, 
-      foods: item.restaurant, 
-      services: item.spa, 
+      foodBeverage: item.foodBeverage, 
+      spa: item.spa, 
+      transportation: item.transportation,
+      guestServices: item.guestServices,
       other: item.other, 
-      total: item.rooms + item.restaurant + item.spa + item.other 
+      total: item.rooms + item.foodBeverage + item.spa + item.transportation + item.guestServices + item.other 
     }));
     exportKPIsToExcel(kpis, revenueExportData, { title: "Revenue Report", dateRange: { start: startDate, end: endDate } });
     toast({ title: "Export Successful", description: "Revenue report exported as Excel" });
@@ -475,7 +511,7 @@ export default function RevenuePage() {
               }`}
             >
               <div className={`w-3 h-3 rounded-full ${revenueFilter === "services" ? "bg-white" : "bg-[#4B4B4B]"}`} />
-              Services (Foods, Spa, Other)
+              Services (F&B, Spa, Transport, Guest Svc, Other)
             </button>
             <button
               onClick={() => setRevenueFilter("total")}
@@ -499,10 +535,12 @@ export default function RevenuePage() {
                   <YAxis stroke="#8A8A8A" fontSize={12} tickFormatter={(value) => formatCurrencyShort(value)} />
                   <Tooltip content={<RevenueTooltip filter={revenueFilter} roomTypeBreakdown={roomTypeBreakdown} posBreakdown={posBreakdown} />} />
                   <Legend />
-                  <Bar dataKey="rooms" name="Rooms" fill="#111111" radius={[4, 4, 0, 0]} stackId="stack" />
-                  <Bar dataKey="foods" name="Foods" fill="#4B4B4B" radius={[0, 0, 0, 0]} stackId="stack" />
-                  <Bar dataKey="services" name="Services" fill="#8A8A8A" radius={[0, 0, 0, 0]} stackId="stack" />
-                  <Bar dataKey="other" name="Other" fill="#D1D1D1" radius={[4, 4, 0, 0]} stackId="stack" />
+                  <Bar dataKey="rooms" name="Rooms" fill="#2563eb" radius={[4, 4, 0, 0]} stackId="stack" />
+                  <Bar dataKey="foodBeverage" name="Food & Beverage" fill="#dc2626" radius={[0, 0, 0, 0]} stackId="stack" />
+                  <Bar dataKey="spa" name="Spa & Wellness" fill="#059669" radius={[0, 0, 0, 0]} stackId="stack" />
+                  <Bar dataKey="transportation" name="Transportation" fill="#d97706" radius={[0, 0, 0, 0]} stackId="stack" />
+                  <Bar dataKey="guestServices" name="Guest Services" fill="#7c3aed" radius={[0, 0, 0, 0]} stackId="stack" />
+                  <Bar dataKey="other" name="Other" fill="#6b7280" radius={[4, 4, 0, 0]} stackId="stack" />
                   <Line type="monotone" dataKey="total" name="Total" stroke="#111111" strokeWidth={2} dot={{ fill: "#111111", r: 4 }} />
                 </ComposedChart>
               ) : revenueFilter === "rooms" ? (
@@ -512,7 +550,7 @@ export default function RevenuePage() {
                   <YAxis stroke="#8A8A8A" fontSize={12} tickFormatter={(value) => formatCurrencyShort(value)} />
                   <Tooltip content={<RevenueTooltip filter={revenueFilter} roomTypeBreakdown={roomTypeBreakdown} posBreakdown={posBreakdown} />} />
                   <Legend />
-                  <Bar dataKey="rooms" name="Room Revenue" fill="#111111" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="rooms" name="Room Revenue" fill="#2563eb" radius={[4, 4, 0, 0]} />
                 </BarChart>
               ) : revenueFilter === "services" ? (
                 <ComposedChart data={revenueWithTotal}>
@@ -521,10 +559,12 @@ export default function RevenuePage() {
                   <YAxis stroke="#8A8A8A" fontSize={12} tickFormatter={(value) => formatCurrencyShort(value)} />
                   <Tooltip content={<RevenueTooltip filter={revenueFilter} roomTypeBreakdown={roomTypeBreakdown} posBreakdown={posBreakdown} />} />
                   <Legend />
-                  <Bar dataKey="foods" name="Foods" fill="#4B4B4B" radius={[4, 4, 0, 0]} stackId="services" />
-                  <Bar dataKey="services" name="Spa/Services" fill="#8A8A8A" radius={[0, 0, 0, 0]} stackId="services" />
-                  <Bar dataKey="other" name="Other" fill="#D1D1D1" radius={[4, 4, 0, 0]} stackId="services" />
-                  <Line type="monotone" dataKey="servicesTotal" name="Services Total" stroke="#4B4B4B" strokeWidth={2} dot={{ fill: "#4B4B4B", r: 4 }} />
+                  <Bar dataKey="foodBeverage" name="Food & Beverage" fill="#dc2626" radius={[4, 4, 0, 0]} stackId="services" />
+                  <Bar dataKey="spa" name="Spa & Wellness" fill="#059669" radius={[0, 0, 0, 0]} stackId="services" />
+                  <Bar dataKey="transportation" name="Transportation" fill="#d97706" radius={[0, 0, 0, 0]} stackId="services" />
+                  <Bar dataKey="guestServices" name="Guest Services" fill="#7c3aed" radius={[0, 0, 0, 0]} stackId="services" />
+                  <Bar dataKey="other" name="Other" fill="#6b7280" radius={[4, 4, 0, 0]} stackId="services" />
+                  <Line type="monotone" dataKey="servicesTotal" name="Services Total" stroke="#dc2626" strokeWidth={2} dot={{ fill: "#dc2626", r: 4 }} />
                 </ComposedChart>
               ) : (
                 <ComposedChart data={revenueWithTotal}>
@@ -533,8 +573,8 @@ export default function RevenuePage() {
                   <YAxis stroke="#8A8A8A" fontSize={12} tickFormatter={(value) => formatCurrencyShort(value)} />
                   <Tooltip content={<RevenueTooltip filter={revenueFilter} roomTypeBreakdown={roomTypeBreakdown} posBreakdown={posBreakdown} />} />
                   <Legend />
-                  <Bar dataKey="total" name="Total Revenue" fill="#111111" radius={[4, 4, 0, 0]} />
-                  <Line type="monotone" dataKey="total" name="Trend" stroke="#4B4B4B" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                  <Bar dataKey="total" name="Total Revenue" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="total" name="Trend" stroke="#dc2626" strokeWidth={2} strokeDasharray="5 5" dot={false} />
                 </ComposedChart>
               )}
             </ResponsiveContainer>
