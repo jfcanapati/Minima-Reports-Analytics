@@ -199,11 +199,11 @@ export default function DashboardPage() {
   const revenueChartData = monthlyRevenue.map(item => ({
     month: item.month,
     Rooms: item.rooms,
-    Foods: item.restaurant,
-    Services: item.spa,
+    Foods: item.foodBeverage,
+    Services: item.spa + item.transportation + item.guestServices,
     Other: item.other,
-    ServicesTotal: item.restaurant + item.spa + item.other,
-    Total: item.rooms + item.restaurant + item.spa + item.other,
+    ServicesTotal: item.foodBeverage + item.spa + item.transportation + item.guestServices + item.other,
+    Total: item.rooms + item.foodBeverage + item.spa + item.transportation + item.guestServices + item.other,
   }));
 
   const kpis = [
